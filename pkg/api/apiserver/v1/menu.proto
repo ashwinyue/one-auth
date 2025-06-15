@@ -1,0 +1,94 @@
+// Copyright 2024 孔令飞 <colin404@foxmail.com>. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file. The original repo for
+// this file is https://github.com/ashwinyue/one-auth. The professional
+// version of this repository is https://github.com/onexstack/onex.
+
+// 菜单管理 API 定义
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
+
+// Menu 表示菜单信息
+message Menu {
+    // id 表示菜单主键ID
+    int64 id = 1;
+    // tenant_id 表示租户ID
+    int64 tenant_id = 2;
+    // parent_id 表示父菜单ID
+    int64 parent_id = 3;
+    // menu_code 表示菜单编码
+    string menu_code = 4;
+    // title 表示菜单标题
+    string title = 5;
+    // route_path 表示前端路由路径
+    string route_path = 6;
+    // api_path 表示API访问路径
+    string api_path = 7;
+    // http_methods 表示支持的HTTP方法
+    string http_methods = 8;
+    // require_auth 表示是否需要认证
+    bool require_auth = 9;
+    // component 表示前端组件路径
+    string component = 10;
+    // icon 表示图标
+    string icon = 11;
+    // sort_order 表示排序
+    int32 sort_order = 12;
+    // menu_type 表示菜单类型：1-菜单，2-按钮，3-接口
+    int32 menu_type = 13;
+    // visible 表示是否可见
+    bool visible = 14;
+    // status 表示状态
+    int32 status = 15;
+    // children 表示子菜单
+    repeated Menu children = 16;
+    // created_at 表示创建时间
+    google.protobuf.Timestamp created_at = 17;
+    // updated_at 表示更新时间
+    google.protobuf.Timestamp updated_at = 18;
+}
+
+// GetUserMenusRequest 表示获取用户菜单请求
+message GetUserMenusRequest {
+    // tenant_id 表示租户ID
+    // @gotags: form:"tenant_id"
+    int64 tenant_id = 1;
+}
+
+// GetUserMenusResponse 表示获取用户菜单响应
+message GetUserMenusResponse {
+    // menus 表示菜单列表
+    repeated Menu menus = 1;
+}
+
+// ListMenusRequest 表示获取菜单列表请求
+message ListMenusRequest {
+    // tenant_id 表示租户ID
+    // @gotags: form:"tenant_id"
+    int64 tenant_id = 1;
+    // parent_id 表示父菜单ID，0表示获取顶级菜单
+    // @gotags: form:"parent_id"
+    int64 parent_id = 2;
+    // menu_type 表示菜单类型过滤
+    // @gotags: form:"menu_type"
+    int32 menu_type = 3;
+    // offset 表示偏移量
+    // @gotags: form:"offset"
+    int64 offset = 4;
+    // limit 表示每页数量
+    // @gotags: form:"limit"
+    int64 limit = 5;
+}
+
+// ListMenusResponse 表示获取菜单列表响应
+message ListMenusResponse {
+    // total_count 表示总数量
+    int64 total_count = 1;
+    // menus 表示菜单列表
+    repeated Menu menus = 2;
+} 

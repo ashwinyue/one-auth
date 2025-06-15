@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: miniblog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: miniblog
+      MYSQL_USER: miniblog
+      MYSQL_PASSWORD: miniblog1234
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./configs/miniblog.sql:/docker-entrypoint-initdb.d/01-miniblog.sql
+    command: 
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    networks:
+      - miniblog-network
+
+volumes:
+  mysql_data:
+
+networks:
+  miniblog-network:
+    driver: bridge 

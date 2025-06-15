@@ -1,0 +1,365 @@
+### One-Auth 菜单管理接口测试
+### 基础URL配置
+@baseUrl = http://localhost:5555
+@contentType = application/json
+
+### 先登录获取Token
+# @name login
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("access_token", response.body.token);
+%}
+
+###
+
+### ==================== 菜单管理 ====================
+
+### 1. 获取菜单列表
+GET {{baseUrl}}/v1/menus
+Authorization: Bearer {{access_token}}
+
+###
+
+### 2. 获取菜单列表（带分页）
+GET {{baseUrl}}/v1/menus?page=1&limit=20
+Authorization: Bearer {{access_token}}
+
+###
+
+### 3. 获取菜单列表（带搜索）
+GET {{baseUrl}}/v1/menus?search=用户管理&status=1
+Authorization: Bearer {{access_token}}
+
+###
+
+### 4. 获取菜单列表（按类型筛选）
+GET {{baseUrl}}/v1/menus?type=menu&parent_id=0&level=1
+Authorization: Bearer {{access_token}}
+
+###
+
+### 5. 获取菜单树形结构
+GET {{baseUrl}}/v1/menus?format=tree&include_disabled=false
+Authorization: Bearer {{access_token}}
+
+###
+
+### 6. 获取特定父菜单的子菜单
+GET {{baseUrl}}/v1/menus?parent_id=menu_system&include_children=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 当前用户菜单 ====================
+
+### 7. 获取当前用户菜单
+GET {{baseUrl}}/v1/user/menus
+Authorization: Bearer {{access_token}}
+
+###
+
+### 8. 获取当前用户菜单（树形结构）
+GET {{baseUrl}}/v1/user/menus?format=tree&include_permissions=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 9. 获取当前用户菜单（扁平结构）
+GET {{baseUrl}}/v1/user/menus?format=flat&include_breadcrumb=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 10. 获取当前用户的导航菜单
+GET {{baseUrl}}/v1/user/menus?type=navigation&level=1,2
+Authorization: Bearer {{access_token}}
+
+###
+
+### 11. 获取当前用户的操作按钮
+GET {{baseUrl}}/v1/user/menus?type=button&parent_path=/users
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 菜单详细信息 ====================
+
+### 12. 获取特定菜单详情
+GET {{baseUrl}}/v1/menus/menu_user_management
+Authorization: Bearer {{access_token}}
+
+###
+
+### 13. 获取菜单的权限要求
+GET {{baseUrl}}/v1/menus/menu_user_management/permissions
+Authorization: Bearer {{access_token}}
+
+###
+
+### 14. 获取菜单的子菜单
+GET {{baseUrl}}/v1/menus/menu_user_management/children
+Authorization: Bearer {{access_token}}
+
+###
+
+### 15. 获取菜单路径
+GET {{baseUrl}}/v1/menus/menu_user_list/path
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 菜单权限验证 ====================
+
+### 16. 检查菜单访问权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["menu:user_management:access"],
+  "resource_type": "menu",
+  "action": "access"
+}
+
+###
+
+### 17. 批量检查菜单权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": [
+    "menu:user_management:access",
+    "menu:role_management:access",
+    "menu:system_settings:access",
+    "menu:user_list:access",
+    "menu:user_create:access"
+  ]
+}
+
+###
+
+### 18. 检查菜单操作权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": [
+    "menu:user_management:read",
+    "menu:user_management:create",
+    "menu:user_management:update",
+    "menu:user_management:delete"
+  ]
+}
+
+###
+
+### ==================== 角色菜单关联 ====================
+
+### 19. 获取角色的菜单列表
+GET {{baseUrl}}/v1/roles/admin/menus
+Authorization: Bearer {{access_token}}
+
+###
+
+### 20. 获取角色菜单（树形结构）
+GET {{baseUrl}}/v1/roles/admin/menus?format=tree&include_permissions=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 21. 更新角色菜单
+PUT {{baseUrl}}/v1/roles/menus
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_id": "role_manager",
+  "menu_ids": [
+    "menu_dashboard",
+    "menu_user_management",
+    "menu_user_list",
+    "menu_user_create",
+    "menu_user_edit",
+    "menu_role_management",
+    "menu_role_list"
+  ]
+}
+
+###
+
+### 22. 批量更新角色菜单
+PUT {{baseUrl}}/v1/roles/menus
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_ids": ["role_manager", "role_supervisor"],
+  "menu_ids": [
+    "menu_dashboard",
+    "menu_user_list",
+    "menu_reports"
+  ],
+  "operation": "batch_assign"
+}
+
+###
+
+### ==================== 菜单层级和导航 ====================
+
+### 23. 获取顶级菜单
+GET {{baseUrl}}/v1/menus?level=1&type=menu&status=1
+Authorization: Bearer {{access_token}}
+
+###
+
+### 24. 获取面包屑导航
+GET {{baseUrl}}/v1/menus/breadcrumb?current_path=/users/list
+Authorization: Bearer {{access_token}}
+
+###
+
+### 25. 获取侧边栏菜单
+GET {{baseUrl}}/v1/user/menus?format=sidebar&max_level=3
+Authorization: Bearer {{access_token}}
+
+###
+
+### 26. 获取头部导航菜单
+GET {{baseUrl}}/v1/user/menus?format=header&type=navigation
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 菜单筛选和搜索 ====================
+
+### 27. 按路径搜索菜单
+GET {{baseUrl}}/v1/menus?path=/users&search_type=path
+Authorization: Bearer {{access_token}}
+
+###
+
+### 28. 按组件搜索菜单
+GET {{baseUrl}}/v1/menus?component=UserList&search_type=component
+Authorization: Bearer {{access_token}}
+
+###
+
+### 29. 按图标搜索菜单
+GET {{baseUrl}}/v1/menus?icon=user&search_type=icon
+Authorization: Bearer {{access_token}}
+
+###
+
+### 30. 获取隐藏菜单
+GET {{baseUrl}}/v1/menus?hidden=true&include_hidden=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 菜单国际化 ====================
+
+### 31. 获取中文菜单
+GET {{baseUrl}}/v1/user/menus?locale=zh-CN&format=tree
+Authorization: Bearer {{access_token}}
+
+###
+
+### 32. 获取英文菜单
+GET {{baseUrl}}/v1/user/menus?locale=en-US&format=tree
+Authorization: Bearer {{access_token}}
+
+###
+
+### 33. 获取多语言菜单标题
+GET {{baseUrl}}/v1/menus/menu_user_management/i18n
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 菜单缓存和优化 ====================
+
+### 34. 获取菜单摘要信息
+GET {{baseUrl}}/v1/user/menus?summary=true&version=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 35. 检查菜单版本
+GET {{baseUrl}}/v1/menus/version?last_version=1.0.0
+Authorization: Bearer {{access_token}}
+
+###
+
+### 36. 获取菜单变更日志
+GET {{baseUrl}}/v1/menus/changelog?since=2024-01-01&limit=10
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 错误测试用例 ====================
+
+### 37. 无Token访问菜单
+GET {{baseUrl}}/v1/menus
+
+###
+
+### 38. 无效Token访问菜单
+GET {{baseUrl}}/v1/menus
+Authorization: Bearer invalid_token
+
+###
+
+### 39. 访问不存在的菜单
+GET {{baseUrl}}/v1/menus/nonexistent_menu
+Authorization: Bearer {{access_token}}
+
+###
+
+### 40. 无权限访问受限菜单
+GET {{baseUrl}}/v1/menus?admin_only=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 41. 无效的菜单筛选参数
+GET {{baseUrl}}/v1/menus?level=invalid&format=invalid
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 菜单统计和分析 ====================
+
+### 42. 获取菜单使用统计
+GET {{baseUrl}}/v1/menus/stats?period=7d&group_by=menu
+Authorization: Bearer {{access_token}}
+
+###
+
+### 43. 获取用户菜单访问记录
+GET {{baseUrl}}/v1/user/menu-access-log?limit=20
+Authorization: Bearer {{access_token}}
+
+###
+
+### 44. 获取最常用菜单
+GET {{baseUrl}}/v1/user/menus/most-used?limit=10&period=30d
+Authorization: Bearer {{access_token}}
+
+###
+
+### 45. 获取菜单性能数据
+GET {{baseUrl}}/v1/menus/performance?include_load_time=true
+Authorization: Bearer {{access_token}}
+
+### 

@@ -8,6 +8,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -201,7 +202,13 @@ func (l *zapLogger) W(ctx context.Context) Logger {
 	// 定义一个映射，关联 context 提取函数和日志字段名。
 	contextExtractors := map[string]func(context.Context) string{
 		known.XRequestID: contextx.RequestID, // 提取请求 ID
-		known.XUserID:    contextx.UserID,    // 提取用户 ID
+		known.XUserID: func(ctx context.Context) string {
+			userID := contextx.UserID(ctx)
+			if userID == 0 {
+				return ""
+			}
+			return fmt.Sprintf("%d", userID)
+		}, // 提取用户 ID并转换为字符串
 	}
 
 	// 遍历映射，从 context 中提取值并添加到日志中。

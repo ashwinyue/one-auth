@@ -14,6 +14,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/ashwinyue/one-auth/internal/apiserver/biz"
+	"github.com/ashwinyue/one-auth/internal/apiserver/cache"
 	"github.com/ashwinyue/one-auth/internal/apiserver/pkg/validation"
 	"github.com/ashwinyue/one-auth/internal/apiserver/store"
 	ginmw "github.com/ashwinyue/one-auth/internal/pkg/middleware/gin"
@@ -24,8 +25,9 @@ func InitializeWebServer(*Config) (server.Server, error) {
 	wire.Build(
 		wire.NewSet(NewWebServer, wire.FieldsOf(new(*Config), "ServerMode")),
 		wire.Struct(new(ServerConfig), "*"), // * 表示注入全部字段
-		wire.NewSet(store.ProviderSet, biz.ProviderSet),
-		ProvideDB, // 提供数据库实例
+		wire.NewSet(store.ProviderSet, biz.ProviderSet, cache.ProviderSet),
+		ProvideDB,    // 提供数据库实例
+		ProvideRedis, // 提供Redis实例
 		validation.ProviderSet,
 		wire.NewSet(
 			wire.Struct(new(UserRetriever), "*"),

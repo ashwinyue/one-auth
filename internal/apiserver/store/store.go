@@ -6,12 +6,13 @@
 
 package store
 
-//go:generate mockgen -destination mock_store.go -package store github.com/ashwinyue/one-auth/internal/apiserver/store IStore,UserStore,PostStore,ConcretePostStore
+//go:generate mockgen -destination mock_store.go -package store github.com/ashwinyue/one-auth/internal/apiserver/store IStore,UserStore,PostStore,ConcretePostStore,TenantStore,RoleStore,PermissionStore,MenuStore
 
 import (
 	"context"
 	"sync"
 
+	"github.com/ashwinyue/one-auth/internal/pkg/contextx"
 	"github.com/ashwinyue/one-auth/pkg/store/where"
 	"github.com/google/wire"
 	"gorm.io/gorm"
@@ -39,6 +40,13 @@ type IStore interface {
 	Post() PostStore
 	// ConcretePost ConcretePosts 是一个示例 store 实现，用来演示在 Go 中如何直接与 DB 交互.
 	ConcretePost() ConcretePostStore
+
+	// RBAC相关的store接口
+	Tenant() TenantStore
+	Role() RoleStore
+	Permission() PermissionStore
+	Menu() MenuStore
+	MenuPermission() MenuPermissionStore
 }
 
 // transactionKey 用于在 context.Context 中存储事务上下文的键.
@@ -60,6 +68,9 @@ func NewStore(db *gorm.DB) *datastore {
 	// 确保 S 只被初始化一次
 	once.Do(func() {
 		S = &datastore{db}
+
+		// 注册租户信息，使用tenant_id字段和contextx.TenantID函数
+		where.RegisterTenant("tenant_id", contextx.TenantID)
 	})
 
 	return S
@@ -105,4 +116,29 @@ func (store *datastore) Post() PostStore {
 // ConcretePost 返回一个实现了 ConcretePostStore 接口的实例.
 func (store *datastore) ConcretePost() ConcretePostStore {
 	return newConcretePostStore(store)
+}
+
+// Tenant 返回一个实现了 TenantStore 接口的实例.
+func (store *datastore) Tenant() TenantStore {
+	return newTenantStore(store)
+}
+
+// Role 返回一个实现了 RoleStore 接口的实例.
+func (store *datastore) Role() RoleStore {
+	return newRoleStore(store)
+}
+
+// MenuPermission 返回一个实现了 MenuPermissionStore 接口的实例.
+func (store *datastore) MenuPermission() MenuPermissionStore {
+	return newMenuPermissionStore(store)
+}
+
+// Permission 返回一个实现了 PermissionStore 接口的实例.
+func (store *datastore) Permission() PermissionStore {
+	return newPermissionStore(store)
+}
+
+// Menu 返回一个实现了 MenuStore 接口的实例.
+func (store *datastore) Menu() MenuStore {
+	return newMenuStore(store)
 }

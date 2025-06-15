@@ -58,8 +58,9 @@ func GeneratePhoneNumber() string {
 func MustWithAdminToken(ctx context.Context, client apiv1.MiniBlogClient) context.Context {
 	// 使用 root 用户登录
 	loginResponse, err := client.Login(ctx, &apiv1.LoginRequest{
-		Username: "root",         // 固定的管理员用户名
-		Password: "miniblog1234", // 固定的管理员密码
+		LoginType:  "username",             // 登录类型
+		Identifier: "root",                 // 用户标识符（用户名）
+		Password:   ptr.To("miniblog1234"), // 管理员密码
 	})
 	if err != nil {
 		log.Printf("Failed to login with root account: %v", err) // 打印登录失败的错误信息

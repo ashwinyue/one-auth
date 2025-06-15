@@ -1,0 +1,225 @@
+// Copyright 2024 孔令飞 <colin404@foxmail.com>. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file. The original repo for
+// this file is https://github.com/ashwinyue/one-auth. The professional
+// version of this repository is https://github.com/onexstack/onex.
+
+// 菜单权限管理 API 定义
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/timestamp.proto";
+import "apiserver/v1/permission.proto";
+
+option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
+
+// MenuPermission 表示菜单权限关联信息
+message MenuPermission {
+    // id 表示关联记录ID
+    int64 id = 1;
+    // tenant_id 表示租户ID
+    int64 tenant_id = 2;
+    // menu_id 表示菜单ID
+    int64 menu_id = 3;
+    // permission_id 表示权限ID
+    int64 permission_id = 4;
+    // is_required 表示是否为必需权限
+    bool is_required = 5;
+    // created_at 表示创建时间
+    google.protobuf.Timestamp created_at = 6;
+    // updated_at 表示更新时间
+    google.protobuf.Timestamp updated_at = 7;
+}
+
+// PermissionConfig 权限配置
+message PermissionConfig {
+    // permission_code 权限编码
+    string permission_code = 1;
+    // is_required 是否为必需权限
+    bool is_required = 2;
+    // auto_create 如果权限不存在是否自动创建
+    bool auto_create = 3;
+}
+
+// MenuWithPermissions 带权限的菜单
+message MenuWithPermissions {
+    // menu_id 菜单ID
+    int64 menu_id = 1;
+    // menu_code 菜单编码
+    string menu_code = 2;
+    // title 菜单标题
+    string title = 3;
+    // permissions 所有权限
+    repeated Permission permissions = 4;
+    // required_permissions 必需权限
+    repeated Permission required_permissions = 5;
+    // available_actions 可执行的操作
+    repeated string available_actions = 6;
+}
+
+// ConfigureMenuPermissionsRequest 配置菜单权限请求
+message ConfigureMenuPermissionsRequest {
+    // menu_id 菜单ID
+    int64 menu_id = 1;
+    // permissions 权限配置列表
+    repeated PermissionConfig permissions = 2;
+}
+
+// ConfigureMenuPermissionsResponse 配置菜单权限响应
+message ConfigureMenuPermissionsResponse {
+    // success 是否成功
+    bool success = 1;
+    // message 响应消息
+    string message = 2;
+    // affected_count 影响的记录数
+    int32 affected_count = 3;
+}
+
+// GetMenuPermissionsRequest 获取菜单权限请求
+message GetMenuPermissionsRequest {
+    // menu_id 菜单ID
+    int64 menu_id = 1;
+    // include_optional 是否包含可选权限
+    bool include_optional = 2;
+}
+
+// GetMenuPermissionsResponse 获取菜单权限响应
+message GetMenuPermissionsResponse {
+    // menu_id 菜单ID
+    int64 menu_id = 1;
+    // all_permissions 所有权限
+    repeated Permission all_permissions = 2;
+    // required_permissions 必需权限
+    repeated Permission required_permissions = 3;
+    // optional_permissions 可选权限
+    repeated Permission optional_permissions = 4;
+}
+
+// GetPermissionMenusRequest 获取权限关联菜单请求
+message GetPermissionMenusRequest {
+    // permission_id 权限ID
+    int64 permission_id = 1;
+}
+
+// GetPermissionMenusResponse 获取权限关联菜单响应
+message GetPermissionMenusResponse {
+    // permission_id 权限ID
+    int64 permission_id = 1;
+    // menus 关联的菜单列表
+    repeated MenuWithPermissions menus = 2;
+}
+
+// GetUserMenuPermissionsRequest 获取用户菜单权限请求
+message GetUserMenuPermissionsRequest {
+    // user_id 用户ID（可选，不传则获取当前用户）
+    string user_id = 1;
+    // tenant_id 租户ID
+    int64 tenant_id = 2;
+    // include_actions 是否包含可执行操作列表
+    bool include_actions = 3;
+}
+
+// GetUserMenuPermissionsResponse 获取用户菜单权限响应
+message GetUserMenuPermissionsResponse {
+    // user_id 用户ID
+    string user_id = 1;
+    // tenant_id 租户ID
+    int64 tenant_id = 2;
+    // accessible_menus 可访问的菜单
+    repeated MenuWithPermissions accessible_menus = 3;
+    // total_menu_count 总菜单数
+    int32 total_menu_count = 4;
+    // accessible_menu_count 可访问菜单数
+    int32 accessible_menu_count = 5;
+}
+
+// ValidateMenuAccessRequest 验证菜单访问权限请求
+message ValidateMenuAccessRequest {
+    // menu_id 菜单ID
+    int64 menu_id = 1;
+    // user_id 用户ID（可选，不传则验证当前用户）
+    string user_id = 2;
+    // tenant_id 租户ID
+    int64 tenant_id = 3;
+    // required_action 需要的操作权限
+    string required_action = 4;
+}
+
+// ValidateMenuAccessResponse 验证菜单访问权限响应
+message ValidateMenuAccessResponse {
+    // has_access 是否有访问权限
+    bool has_access = 1;
+    // missing_permissions 缺少的权限
+    repeated string missing_permissions = 2;
+    // available_actions 可执行的操作
+    repeated string available_actions = 3;
+    // message 说明消息
+    string message = 4;
+}
+
+// BatchConfigureMenuPermissionsRequest 批量配置菜单权限请求
+message BatchConfigureMenuPermissionsRequest {
+    // configurations 菜单权限配置
+    repeated MenuPermissionBatch configurations = 1;
+    // clear_existing 是否清除现有配置
+    bool clear_existing = 2;
+}
+
+// MenuPermissionBatch 菜单权限批量配置
+message MenuPermissionBatch {
+    // menu_id 菜单ID
+    int64 menu_id = 1;
+    // permissions 权限配置
+    repeated PermissionConfig permissions = 2;
+}
+
+// BatchConfigureMenuPermissionsResponse 批量配置菜单权限响应
+message BatchConfigureMenuPermissionsResponse {
+    // success 是否成功
+    bool success = 1;
+    // message 响应消息
+    string message = 2;
+    // processed_count 处理的菜单数
+    int32 processed_count = 3;
+    // error_count 错误数量
+    int32 error_count = 4;
+    // errors 错误详情
+    repeated string errors = 5;
+}
+
+// GetMenuPermissionMatrixRequest 获取菜单权限矩阵请求
+message GetMenuPermissionMatrixRequest {
+    // tenant_id 租户ID
+    int64 tenant_id = 1;
+    // menu_types 菜单类型过滤
+    repeated int32 menu_types = 2;
+}
+
+// GetMenuPermissionMatrixResponse 获取菜单权限矩阵响应
+message GetMenuPermissionMatrixResponse {
+    // tenant_id 租户ID
+    int64 tenant_id = 1;
+    // matrix 菜单权限矩阵
+    repeated MenuPermissionMatrix matrix = 2;
+    // total_menus 总菜单数
+    int32 total_menus = 3;
+    // total_permissions 总权限数
+    int32 total_permissions = 4;
+}
+
+// MenuPermissionMatrix 菜单权限矩阵
+message MenuPermissionMatrix {
+    // menu_id 菜单ID
+    int64 menu_id = 1;
+    // menu_code 菜单编码
+    string menu_code = 2;
+    // menu_title 菜单标题
+    string menu_title = 3;
+    // required_permissions 必需权限
+    repeated Permission required_permissions = 4;
+    // optional_permissions 可选权限
+    repeated Permission optional_permissions = 5;
+    // permission_count 权限总数
+    int32 permission_count = 6;
+} 

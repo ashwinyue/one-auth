@@ -31,6 +31,21 @@ func (x *LoginRequest) Default() {
 func (x *LoginResponse) Default() {
 }
 
+func (x *UserInfo) Default() {
+}
+
+func (x *SendVerifyCodeRequest) Default() {
+}
+
+func (x *SendVerifyCodeResponse) Default() {
+}
+
+func (x *LogoutRequest) Default() {
+}
+
+func (x *LogoutResponse) Default() {
+}
+
 func (x *RefreshTokenRequest) Default() {
 }
 

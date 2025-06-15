@@ -135,3 +135,28 @@ func Sign(identityKey string) (string, time.Time, error) {
 
 	return tokenString, expireAt, nil // 返回 token 字符串、过期时间和错误
 }
+
+// SignWithExpiration 使用自定义过期时间签发 token
+func SignWithExpiration(identityKey string, expiration time.Duration) (string, time.Time, error) {
+	// 计算过期时间
+	expireAt := time.Now().Add(expiration)
+
+	// Token 的内容
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		config.identityKey: identityKey,       // 存放用户身份
+		"nbf":              time.Now().Unix(), // token 生效时间
+		"iat":              time.Now().Unix(), // token 签发时间
+		"exp":              expireAt.Unix(),   // token 过期时间
+	})
+	if config.key == "" {
+		return "", time.Time{}, jwt.ErrInvalidKey
+	}
+
+	// 签发 token
+	tokenString, err := token.SignedString([]byte(config.key))
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	return tokenString, expireAt, nil // 返回 token 字符串、过期时间和错误
+}

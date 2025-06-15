@@ -754,13 +754,29 @@
     "v1LoginRequest": {
       "type": "object",
       "properties": {
-        "username": {
+        "loginType": {
           "type": "string",
-          "title": "username 表示用户名称"
+          "title": "login_type 表示登录方式：username, email, phone"
+        },
+        "identifier": {
+          "type": "string",
+          "title": "identifier 表示登录标识符（用户名、邮箱或手机号）"
         },
         "password": {
           "type": "string",
-          "title": "password 表示用户密码"
+          "title": "password 表示用户密码（密码登录时必填）"
+        },
+        "verifyCode": {
+          "type": "string",
+          "title": "verify_code 表示验证码（验证码登录时必填）"
+        },
+        "clientType": {
+          "type": "string",
+          "title": "client_type 表示客户端类型：web, h5, android, ios, mini_program, op"
+        },
+        "deviceId": {
+          "type": "string",
+          "title": "device_id 表示设备ID（用于设备管理）"
         }
       },
       "title": "LoginRequest 表示登录请求"
@@ -776,6 +792,18 @@
           "type": "string",
           "format": "date-time",
           "title": "expireAt 表示该 token 的过期时间"
+        },
+        "refreshToken": {
+          "type": "string",
+          "title": "refresh_token 表示刷新令牌"
+        },
+        "userInfo": {
+          "$ref": "#/definitions/v1UserInfo",
+          "title": "user_info 表示用户基本信息"
+        },
+        "sessionId": {
+          "type": "string",
+          "title": "session_id 表示会话ID"
         }
       },
       "title": "LoginResponse 表示登录响应"
@@ -890,6 +918,41 @@
         }
       },
       "title": "User 表示用户信息"
+    },
+    "v1UserInfo": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "user_id 表示用户ID"
+        },
+        "username": {
+          "type": "string",
+          "title": "username 表示用户名"
+        },
+        "nickname": {
+          "type": "string",
+          "title": "nickname 表示昵称"
+        },
+        "email": {
+          "type": "string",
+          "title": "email 表示邮箱"
+        },
+        "phone": {
+          "type": "string",
+          "title": "phone 表示手机号"
+        },
+        "status": {
+          "type": "string",
+          "title": "status 表示用户状态：active, inactive, locked, banned"
+        },
+        "lastLoginTime": {
+          "type": "string",
+          "format": "date-time",
+          "title": "last_login_time 表示最后登录时间"
+        }
+      },
+      "title": "UserInfo 表示用户基本信息"
     }
   }
 }

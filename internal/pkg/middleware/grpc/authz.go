@@ -8,6 +8,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc"
 
@@ -18,24 +19,41 @@ import (
 
 // Authorizer 用于定义授权接口的实现.
 type Authorizer interface {
-	Authorize(subject, object, action string) (bool, error)
+	// 使用domain进行授权检查
+	AuthorizeWithDomain(subject, domain, object, action string) (bool, error)
 }
 
 // AuthzInterceptor 是一个 gRPC 拦截器，用于进行请求授权.
 func AuthzInterceptor(authorizer Authorizer) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		subject := contextx.UserID(ctx) // 获取用户ID
-		object := info.FullMethod       // 获取请求资源
-		action := "CALL"                // 默认操作
+		userID := contextx.UserID(ctx)   // 获取用户ID
+		domain := contextx.TenantID(ctx) // 获取租户ID作为domain
+		object := info.FullMethod        // 获取请求资源
+		action := "CALL"                 // 默认操作
+
+		// 构建用户标识符
+		subject := fmt.Sprintf("u%d", userID)
+
+		// 如果没有租户ID，使用默认租户
+		if domain == "" {
+			domain = "default"
+		}
 
 		// 记录授权上下文信息
-		log.Debugw("Build authorize context", "subject", subject, "object", object, "action", action)
+		log.Debugw("Build authorize context",
+			"subject", subject,
+			"domain", domain,
+			"object", object,
+			"action", action)
 
-		// 调用授权接口进行验证
-		if allowed, err := authorizer.Authorize(subject, object, action); err != nil || !allowed {
+		// 使用domain进行授权检查
+		allowed, err := authorizer.AuthorizeWithDomain(subject, domain, object, action)
+
+		if err != nil || !allowed {
 			return nil, errno.ErrPermissionDenied.WithMessage(
-				"access denied: subject=%s, object=%s, action=%s, reason=%v",
+				"access denied: subject=%s, domain=%s, object=%s, action=%s, reason=%v",
 				subject,
+				domain,
 				object,
 				action,
 				err,

@@ -1,0 +1,120 @@
+### One-Auth 认证接口测试
+### 基础URL配置
+@baseUrl = http://localhost:5555
+@contentType = application/json
+
+### 1. 健康检查
+GET {{baseUrl}}/healthz
+
+###
+
+### 2. 发送验证码（无需认证）
+POST {{baseUrl}}/send-verify-code
+Content-Type: {{contentType}}
+
+{
+  "target": "test@example.com",
+  "type": "login",
+  "channel": "email"
+}
+
+###
+
+### 3. 用户登录
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123",
+  "verify_code": "",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("access_token", response.body.token);
+client.global.set("refresh_token", response.body.refresh_token);
+%}
+
+###
+
+### 4. 用户登录 - 使用邮箱
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "admin123",
+  "verify_code": "",
+  "login_type": "email"
+}
+
+###
+
+### 5. 用户登录 - 使用手机号
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "phone": "13800138000",
+  "password": "admin123",
+  "verify_code": "123456",
+  "login_type": "phone"
+}
+
+###
+
+### 6. 刷新令牌
+PUT {{baseUrl}}/refresh-token
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{}
+
+> {%
+client.global.set("access_token", response.body.token);
+%}
+
+###
+
+### 7. 用户登出
+POST {{baseUrl}}/logout
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{}
+
+###
+
+### 8. 登录失败测试 - 错误密码
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "wrong_password",
+  "login_type": "username"
+}
+
+###
+
+### 9. 登录失败测试 - 用户不存在
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "nonexistent_user",
+  "password": "password123",
+  "login_type": "username"
+}
+
+###
+
+### 10. 无效Token测试
+PUT {{baseUrl}}/refresh-token
+Content-Type: {{contentType}}
+Authorization: Bearer invalid_token
+
+{}
+
+### 

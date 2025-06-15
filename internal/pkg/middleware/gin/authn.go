@@ -8,6 +8,7 @@ package gin
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/ashwinyue/one-auth/pkg/core"
 	"github.com/ashwinyue/one-auth/pkg/token"
@@ -23,6 +24,8 @@ import (
 type UserRetriever interface {
 	// GetUser 根据用户ID获取用户信息
 	GetUser(ctx context.Context, userID string) (*model.UserM, error)
+	// GetUserTenantID 根据用户ID获取租户ID
+	GetUserTenantID(ctx context.Context, userID string) (int64, error)
 }
 
 // AuthnMiddleware 是一个认证中间件，用于从 gin.Context 中提取 token 并验证 token 是否合法.
@@ -47,6 +50,15 @@ func AuthnMiddleware(retriever UserRetriever) gin.HandlerFunc {
 
 		ctx := contextx.WithUserID(c.Request.Context(), user.UserID)
 		ctx = contextx.WithUsername(ctx, user.Username)
+
+		// 获取并设置租户ID
+		if tenantID, err := retriever.GetUserTenantID(c, user.UserID); err == nil {
+			ctx = contextx.WithTenantID(ctx, strconv.FormatInt(tenantID, 10))
+		} else {
+			// 如果获取租户ID失败，使用默认租户ID
+			ctx = contextx.WithTenantID(ctx, "1")
+		}
+
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()

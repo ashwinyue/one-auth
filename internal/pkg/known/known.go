@@ -23,6 +23,9 @@ const (
 
 	// XUsername 用来定义上下文的键，代表请求用户名.
 	XUsername = "x-username"
+
+	// XTenantID 用来定义上下文的键，代表租户 ID.
+	XTenantID = "x-tenant-id"
 )
 
 // 定义其他常量.

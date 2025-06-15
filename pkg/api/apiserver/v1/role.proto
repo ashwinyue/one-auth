@@ -1,0 +1,223 @@
+// Copyright 2024 孔令飞 <colin404@foxmail.com>. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file. The original repo for
+// this file is https://github.com/ashwinyue/one-auth. The professional
+// version of this repository is https://github.com/onexstack/onex.
+
+// 角色管理 API 定义
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/timestamp.proto";
+import "apiserver/v1/permission.proto";
+import "apiserver/v1/menu.proto";
+
+option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
+
+// Role 表示角色信息
+message Role {
+    // id 表示角色主键ID
+    int64 id = 1;
+    // tenant_id 表示租户ID
+    int64 tenant_id = 2;
+    // role_code 表示角色编码
+    string role_code = 3;
+    // name 表示角色名称
+    string name = 4;
+    // description 表示角色描述
+    string description = 5;
+    // status 表示角色状态
+    int32 status = 6;
+    // created_at 表示创建时间
+    google.protobuf.Timestamp created_at = 7;
+    // updated_at 表示更新时间
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+// ListRolesRequest 表示获取角色列表请求
+message ListRolesRequest {
+    // tenant_id 表示租户ID
+    // @gotags: form:"tenant_id"
+    int64 tenant_id = 1;
+    // offset 表示偏移量
+    // @gotags: form:"offset"
+    int64 offset = 2;
+    // limit 表示每页数量
+    // @gotags: form:"limit"
+    int64 limit = 3;
+}
+
+// ListRolesResponse 表示获取角色列表响应
+message ListRolesResponse {
+    // total_count 表示总数量
+    int64 total_count = 1;
+    // roles 表示角色列表
+    repeated Role roles = 2;
+}
+
+// GetRolePermissionsRequest 表示获取角色权限请求
+message GetRolePermissionsRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+}
+
+// GetRolePermissionsResponse 表示获取角色权限响应
+message GetRolePermissionsResponse {
+    // permissions 表示权限列表
+    repeated Permission permissions = 1;
+}
+
+// AssignRolePermissionsRequest 表示分配角色权限请求
+message AssignRolePermissionsRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+    // permission_ids 表示权限ID列表
+    repeated int64 permission_ids = 2;
+}
+
+// AssignRolePermissionsResponse 表示分配角色权限响应
+message AssignRolePermissionsResponse {
+    // success 表示是否成功
+    bool success = 1;
+}
+
+// GetUserRolesRequest 表示获取用户角色请求
+message GetUserRolesRequest {
+    // user_id 表示用户ID
+    string user_id = 1;
+}
+
+// GetUserRolesResponse 表示获取用户角色响应
+message GetUserRolesResponse {
+    // roles 表示角色列表
+    repeated Role roles = 1;
+}
+
+// AssignUserRolesRequest 表示分配用户角色请求
+message AssignUserRolesRequest {
+    // user_id 表示用户ID
+    string user_id = 1;
+    // role_ids 表示角色ID列表
+    repeated int64 role_ids = 2;
+}
+
+// AssignUserRolesResponse 表示分配用户角色响应
+message AssignUserRolesResponse {
+    // success 表示是否成功
+    bool success = 1;
+}
+
+// CreateRoleRequest 表示创建角色请求
+message CreateRoleRequest {
+    // tenant_id 表示租户ID
+    int64 tenant_id = 1;
+    // role_code 表示角色编码
+    string role_code = 2;
+    // name 表示角色名称
+    string name = 3;
+    // description 表示角色描述
+    string description = 4;
+}
+
+// CreateRoleResponse 表示创建角色响应
+message CreateRoleResponse {
+    // role 表示创建的角色
+    Role role = 1;
+}
+
+// UpdateRoleRequest 表示更新角色请求
+message UpdateRoleRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+    // name 表示角色名称
+    string name = 2;
+    // description 表示角色描述
+    string description = 3;
+}
+
+// UpdateRoleResponse 表示更新角色响应
+message UpdateRoleResponse {
+    // role 表示更新后的角色
+    Role role = 1;
+}
+
+// DeleteRoleRequest 表示删除角色请求
+message DeleteRoleRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+}
+
+// DeleteRoleResponse 表示删除角色响应
+message DeleteRoleResponse {
+    // success 表示是否成功
+    bool success = 1;
+}
+
+// CheckDeleteRoleRequest 表示检查角色是否可删除请求
+message CheckDeleteRoleRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+}
+
+// CheckDeleteRoleResponse 表示检查角色是否可删除响应
+message CheckDeleteRoleResponse {
+    // can_delete 表示是否可以删除
+    bool can_delete = 1;
+    // reason 表示不能删除的原因
+    string reason = 2;
+}
+
+// GetRoleMenusRequest 表示获取角色菜单请求
+message GetRoleMenusRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+}
+
+// GetRoleMenusResponse 表示获取角色菜单响应
+message GetRoleMenusResponse {
+    // menus 表示菜单列表
+    repeated Menu menus = 1;
+}
+
+// UpdateRoleMenusRequest 表示更新角色菜单请求
+message UpdateRoleMenusRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+    // menu_ids 表示菜单ID列表
+    repeated int64 menu_ids = 2;
+}
+
+// UpdateRoleMenusResponse 表示更新角色菜单响应
+message UpdateRoleMenusResponse {
+    // success 表示是否成功
+    bool success = 1;
+}
+
+// GetRolesByUserRequest 表示获取当前用户角色请求
+message GetRolesByUserRequest {
+    // tenant_id 表示租户ID
+    // @gotags: form:"tenant_id"
+    int64 tenant_id = 1;
+}
+
+// GetRolesByUserResponse 表示获取当前用户角色响应
+message GetRolesByUserResponse {
+    // roles 表示角色列表
+    repeated Role roles = 1;
+}
+
+// RefreshPrivilegeDataRequest 表示刷新权限数据请求
+message RefreshPrivilegeDataRequest {
+    // tenant_id 表示租户ID
+    // @gotags: form:"tenant_id"
+    int64 tenant_id = 1;
+}
+
+// RefreshPrivilegeDataResponse 表示刷新权限数据响应
+message RefreshPrivilegeDataResponse {
+    // success 表示是否成功
+    bool success = 1;
+}
+
+ 

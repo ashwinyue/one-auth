@@ -1,0 +1,322 @@
+### One-Auth 角色管理接口测试
+### 基础URL配置
+@baseUrl = http://localhost:5555
+@contentType = application/json
+
+### 先登录获取Token
+# @name login
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("access_token", response.body.token);
+%}
+
+###
+
+### ==================== 角色管理 ====================
+
+### 1. 获取角色列表
+GET {{baseUrl}}/v1/roles?page=1&limit=10&search=admin
+Authorization: Bearer {{access_token}}
+
+###
+
+### 2. 获取角色列表（带筛选条件）
+GET {{baseUrl}}/v1/roles?page=1&limit=10&status=1&created_start=2024-01-01&created_end=2024-12-31
+Authorization: Bearer {{access_token}}
+
+###
+
+### 3. 创建角色
+# @name createRole
+POST {{baseUrl}}/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "test_manager",
+  "display_name": "测试管理员",
+  "description": "负责测试相关工作的管理员角色",
+  "status": 1,
+  "sort": 100,
+  "tenant_id": "tenant_001",
+  "remarks": "测试角色备注"
+}
+
+> {%
+client.global.set("created_role_id", response.body.role_id);
+%}
+
+###
+
+### 4. 获取角色详情
+GET {{baseUrl}}/v1/roles/{{created_role_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 5. 更新角色
+PUT {{baseUrl}}/v1/roles/{{created_role_id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "test_manager_updated",
+  "display_name": "更新的测试管理员",
+  "description": "更新后的测试管理员角色描述",
+  "status": 1,
+  "sort": 200,
+  "remarks": "更新的角色备注"
+}
+
+###
+
+### 6. 检查角色是否可删除
+GET {{baseUrl}}/v1/roles/{{created_role_id}}/check-delete
+Authorization: Bearer {{access_token}}
+
+###
+
+### 7. 删除角色
+DELETE {{baseUrl}}/v1/roles/{{created_role_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 8. 批量删除角色
+DELETE {{baseUrl}}/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_ids": ["role_id_1", "role_id_2"]
+}
+
+###
+
+### ==================== 角色权限管理 ====================
+
+### 9. 获取角色权限
+GET {{baseUrl}}/v1/roles/{{created_role_id}}/permissions
+Authorization: Bearer {{access_token}}
+
+###
+
+### 10. 分配角色权限
+POST {{baseUrl}}/v1/roles/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_id": "{{created_role_id}}",
+  "permission_ids": [
+    "user:read",
+    "user:write",
+    "role:read",
+    "post:read",
+    "post:write"
+  ],
+  "operation": "assign"
+}
+
+###
+
+### 11. 移除角色权限
+POST {{baseUrl}}/v1/roles/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_id": "{{created_role_id}}",
+  "permission_ids": [
+    "user:write",
+    "role:read"
+  ],
+  "operation": "remove"
+}
+
+###
+
+### 12. 批量分配角色权限
+POST {{baseUrl}}/v1/roles/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_ids": ["role_id_1", "role_id_2"],
+  "permission_ids": [
+    "user:read",
+    "post:read"
+  ],
+  "operation": "batch_assign"
+}
+
+###
+
+### ==================== 角色菜单管理 ====================
+
+### 13. 获取角色菜单
+GET {{baseUrl}}/v1/roles/{{created_role_id}}/menus
+Authorization: Bearer {{access_token}}
+
+###
+
+### 14. 更新角色菜单
+PUT {{baseUrl}}/v1/roles/menus
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_id": "{{created_role_id}}",
+  "menu_ids": [
+    "menu_dashboard",
+    "menu_user_management",
+    "menu_user_list",
+    "menu_user_create",
+    "menu_post_management",
+    "menu_post_list"
+  ]
+}
+
+###
+
+### 15. 批量更新角色菜单
+PUT {{baseUrl}}/v1/roles/menus
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_ids": ["role_id_1", "role_id_2"],
+  "menu_ids": [
+    "menu_dashboard",
+    "menu_user_list"
+  ],
+  "operation": "batch_update"
+}
+
+###
+
+### ==================== 当前用户角色相关 ====================
+
+### 16. 获取当前用户角色
+GET {{baseUrl}}/v1/user/roles
+Authorization: Bearer {{access_token}}
+
+###
+
+### 17. 按用户获取角色信息
+GET {{baseUrl}}/v1/user/roles?include_permissions=true&include_menus=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 系统管理 ====================
+
+### 18. 刷新权限数据
+POST {{baseUrl}}/v1/system/refresh-privilege
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "type": "all",
+  "force_refresh": true
+}
+
+###
+
+### 19. 刷新特定角色权限数据
+POST {{baseUrl}}/v1/system/refresh-privilege
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "type": "role",
+  "role_ids": ["{{created_role_id}}"],
+  "force_refresh": false
+}
+
+###
+
+### ==================== 错误测试用例 ====================
+
+### 20. 创建角色 - 角色名已存在
+POST {{baseUrl}}/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "admin",
+  "display_name": "重复的管理员",
+  "description": "这会导致冲突"
+}
+
+###
+
+### 21. 更新不存在的角色
+PUT {{baseUrl}}/v1/roles/nonexistent_role_id
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "nonexistent",
+  "display_name": "不存在的角色"
+}
+
+###
+
+### 22. 删除不存在的角色
+DELETE {{baseUrl}}/v1/roles/nonexistent_role_id
+Authorization: Bearer {{access_token}}
+
+###
+
+### 23. 分配不存在的权限
+POST {{baseUrl}}/v1/roles/permissions
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "role_id": "{{created_role_id}}",
+  "permission_ids": [
+    "nonexistent:permission"
+  ],
+  "operation": "assign"
+}
+
+###
+
+### 24. 无权限访问角色管理
+GET {{baseUrl}}/v1/roles
+# 不带Authorization头
+
+###
+
+### 25. 创建角色 - 缺少必填字段
+POST {{baseUrl}}/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "display_name": "缺少名称的角色"
+}
+
+###
+
+### 26. 创建角色 - 角色名称格式错误
+POST {{baseUrl}}/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "name": "invalid name with spaces!@#",
+  "display_name": "格式错误的角色名"
+}
+
+### 

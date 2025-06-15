@@ -1,0 +1,395 @@
+### One-Auth 租户管理接口测试
+### 基础URL配置
+@baseUrl = http://localhost:5555
+@contentType = application/json
+
+### 先登录获取Token
+# @name login
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("access_token", response.body.token);
+client.global.set("current_tenant_id", response.body.tenant_id);
+%}
+
+###
+
+### ==================== 租户管理 ====================
+
+### 1. 获取租户列表
+GET {{baseUrl}}/v1/tenants
+Authorization: Bearer {{access_token}}
+
+###
+
+### 2. 获取租户列表（带分页）
+GET {{baseUrl}}/v1/tenants?page=1&limit=10
+Authorization: Bearer {{access_token}}
+
+###
+
+### 3. 获取租户列表（带搜索）
+GET {{baseUrl}}/v1/tenants?search=demo&status=1
+Authorization: Bearer {{access_token}}
+
+###
+
+### 4. 获取租户列表（带筛选条件）
+GET {{baseUrl}}/v1/tenants?page=1&limit=10&status=1&type=enterprise&created_start=2024-01-01&created_end=2024-12-31
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 当前用户租户相关 ====================
+
+### 5. 获取当前用户的租户列表
+GET {{baseUrl}}/v1/user/tenants
+Authorization: Bearer {{access_token}}
+
+###
+
+### 6. 获取当前用户租户列表（包含详细信息）
+GET {{baseUrl}}/v1/user/tenants?include_details=true&include_roles=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 7. 获取当前用户在特定租户的角色
+GET {{baseUrl}}/v1/user/tenants?tenant_id={{current_tenant_id}}&include_roles=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 8. 切换租户
+POST {{baseUrl}}/v1/user/switch-tenant
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tenant_id": "tenant_demo_001"
+}
+
+> {%
+client.global.set("switched_tenant_id", response.body.tenant_id);
+client.global.set("new_access_token", response.body.token);
+%}
+
+###
+
+### 9. 切换租户（带原因）
+POST {{baseUrl}}/v1/user/switch-tenant
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tenant_id": "tenant_demo_002",
+  "reason": "切换到测试环境进行功能测试",
+  "remember_choice": true
+}
+
+###
+
+### 10. 获取当前租户信息
+GET {{baseUrl}}/v1/user/current-tenant
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 租户权限验证 ====================
+
+### 11. 验证在新租户下的权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{new_access_token}}
+
+{
+  "permissions": [
+    "user:read",
+    "user:write",
+    "role:read"
+  ],
+  "tenant_context": true
+}
+
+###
+
+### 12. 检查跨租户权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["user:read"],
+  "target_tenant_id": "tenant_demo_003",
+  "check_cross_tenant": true
+}
+
+###
+
+### 13. 获取租户特定的用户列表
+GET {{baseUrl}}/v1/users?tenant_id={{switched_tenant_id}}
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### 14. 获取租户特定的角色列表
+GET {{baseUrl}}/v1/roles?tenant_id={{switched_tenant_id}}
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### ==================== 租户资源隔离测试 ====================
+
+### 15. 在当前租户创建用户
+POST {{baseUrl}}/v1/users
+Content-Type: {{contentType}}
+Authorization: Bearer {{new_access_token}}
+
+{
+  "username": "tenant_user_001",
+  "password": "Test123456!",
+  "email": "tenant_user_001@example.com",
+  "nickname": "租户用户001",
+  "tenant_id": "{{switched_tenant_id}}"
+}
+
+> {%
+client.global.set("tenant_user_id", response.body.user_id);
+%}
+
+###
+
+### 16. 在当前租户创建角色
+POST {{baseUrl}}/v1/roles
+Content-Type: {{contentType}}
+Authorization: Bearer {{new_access_token}}
+
+{
+  "name": "tenant_manager",
+  "display_name": "租户管理员",
+  "description": "租户级别的管理员角色",
+  "tenant_id": "{{switched_tenant_id}}"
+}
+
+> {%
+client.global.set("tenant_role_id", response.body.role_id);
+%}
+
+###
+
+### 17. 尝试访问其他租户的资源（应该失败）
+GET {{baseUrl}}/v1/users/{{tenant_user_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 18. 尝试在其他租户修改资源（应该失败）
+PUT {{baseUrl}}/v1/users/{{tenant_user_id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "nickname": "尝试跨租户修改"
+}
+
+###
+
+### ==================== 租户切换历史和会话 ====================
+
+### 19. 获取租户切换历史
+GET {{baseUrl}}/v1/user/tenant-switch-history?limit=10
+Authorization: Bearer {{access_token}}
+
+###
+
+### 20. 获取当前用户的所有活跃会话
+GET {{baseUrl}}/v1/user/active-sessions
+Authorization: Bearer {{access_token}}
+
+###
+
+### 21. 获取特定租户的活跃会话
+GET {{baseUrl}}/v1/user/active-sessions?tenant_id={{switched_tenant_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 22. 终止其他租户的会话
+POST {{baseUrl}}/v1/user/terminate-sessions
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tenant_id": "{{switched_tenant_id}}",
+  "session_type": "other_tenants"
+}
+
+###
+
+### ==================== 租户配置和限制 ====================
+
+### 23. 获取租户配置信息
+GET {{baseUrl}}/v1/tenants/{{switched_tenant_id}}/config
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### 24. 获取租户使用限制
+GET {{baseUrl}}/v1/tenants/{{switched_tenant_id}}/limits
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### 25. 获取租户统计信息
+GET {{baseUrl}}/v1/tenants/{{switched_tenant_id}}/stats
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### 26. 检查租户资源配额
+GET {{baseUrl}}/v1/tenants/{{switched_tenant_id}}/quota-usage
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### ==================== 错误测试用例 ====================
+
+### 27. 切换到不存在的租户
+POST {{baseUrl}}/v1/user/switch-tenant
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tenant_id": "nonexistent_tenant"
+}
+
+###
+
+### 28. 切换到无权限的租户
+POST {{baseUrl}}/v1/user/switch-tenant
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tenant_id": "unauthorized_tenant_123"
+}
+
+###
+
+### 29. 无Token访问租户信息
+GET {{baseUrl}}/v1/tenants
+
+###
+
+### 30. 无效Token访问租户信息
+GET {{baseUrl}}/v1/tenants
+Authorization: Bearer invalid_token
+
+###
+
+### 31. 尝试访问被禁用的租户
+POST {{baseUrl}}/v1/user/switch-tenant
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tenant_id": "disabled_tenant_456"
+}
+
+###
+
+### 32. 空租户ID切换
+POST {{baseUrl}}/v1/user/switch-tenant
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tenant_id": ""
+}
+
+###
+
+### ==================== 多租户场景测试 ====================
+
+### 33. 同时登录多个租户（模拟）
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "multi_tenant_user",
+  "password": "Test123456!",
+  "tenant_id": "tenant_001",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("tenant1_token", response.body.token);
+%}
+
+###
+
+### 34. 在第二个租户登录
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "multi_tenant_user",
+  "password": "Test123456!",
+  "tenant_id": "tenant_002",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("tenant2_token", response.body.token);
+%}
+
+###
+
+### 35. 使用租户1的Token访问资源
+GET {{baseUrl}}/v1/users?page=1&limit=5
+Authorization: Bearer {{tenant1_token}}
+
+###
+
+### 36. 使用租户2的Token访问资源
+GET {{baseUrl}}/v1/users?page=1&limit=5
+Authorization: Bearer {{tenant2_token}}
+
+###
+
+### 37. 验证租户间数据隔离
+GET {{baseUrl}}/v1/users/{{tenant_user_id}}
+Authorization: Bearer {{tenant1_token}}
+
+###
+
+### 38. 清理测试数据 - 删除租户用户
+DELETE {{baseUrl}}/v1/users/{{tenant_user_id}}
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### 39. 清理测试数据 - 删除租户角色
+DELETE {{baseUrl}}/v1/roles/{{tenant_role_id}}
+Authorization: Bearer {{new_access_token}}
+
+###
+
+### 40. 切换回原始租户
+POST {{baseUrl}}/v1/user/switch-tenant
+Content-Type: {{contentType}}
+Authorization: Bearer {{new_access_token}}
+
+{
+  "tenant_id": "{{current_tenant_id}}",
+  "reason": "测试完成，切换回原始租户"
+}
+
+### 

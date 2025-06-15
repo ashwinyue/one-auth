@@ -11,6 +11,7 @@
 package model
 
 import (
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -18,15 +19,15 @@ const TableNameUserM = "user"
 
 // UserM mapped from table <user>
 type UserM struct {
-	ID        int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	UserID    string    `gorm:"column:userID;not null;uniqueIndex:idx_user_userID;comment:用户唯一 ID" json:"userID"`       // 用户唯一 ID
-	Username  string    `gorm:"column:username;not null;uniqueIndex:idx_user_username;comment:用户名（唯一）" json:"username"` // 用户名（唯一）
-	Password  string    `gorm:"column:password;not null;comment:用户密码（加密后）" json:"password"`                             // 用户密码（加密后）
-	Nickname  string    `gorm:"column:nickname;not null;comment:用户昵称" json:"nickname"`                                  // 用户昵称
-	Email     string    `gorm:"column:email;not null;comment:用户电子邮箱地址" json:"email"`                                    // 用户电子邮箱地址
-	Phone     string    `gorm:"column:phone;not null;uniqueIndex:idx_user_phone;comment:用户手机号" json:"phone"`            // 用户手机号
-	CreatedAt time.Time `gorm:"column:createdAt;not null;default:current_timestamp;comment:用户创建时间" json:"createdAt"`    // 用户创建时间
-	UpdatedAt time.Time `gorm:"column:updatedAt;not null;default:current_timestamp;comment:用户最后修改时间" json:"updatedAt"`  // 用户最后修改时间
+	ID        int64          `gorm:"column:id;primaryKey;autoIncrement:true;comment:用户主键ID" json:"id"`                        // 用户主键ID
+	Username  string         `gorm:"column:username;not null;uniqueIndex:idx_user_username;comment:用户名（唯一）" json:"username"`  // 用户名（唯一）
+	Password  string         `gorm:"column:password;not null;comment:用户密码（加密后）" json:"password"`                              // 用户密码（加密后）
+	Nickname  string         `gorm:"column:nickname;not null;comment:用户昵称" json:"nickname"`                                   // 用户昵称
+	Email     string         `gorm:"column:email;not null;comment:用户电子邮箱地址" json:"email"`                                     // 用户电子邮箱地址
+	Phone     string         `gorm:"column:phone;not null;uniqueIndex:idx_user_phone;comment:用户手机号" json:"phone"`             // 用户手机号
+	CreatedAt time.Time      `gorm:"column:created_at;not null;default:current_timestamp;comment:用户创建时间" json:"created_at"`   // 用户创建时间
+	UpdatedAt time.Time      `gorm:"column:updated_at;not null;default:current_timestamp;comment:用户最后修改时间" json:"updated_at"` // 用户最后修改时间
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index;comment:软删除时间" json:"deleted_at"`                                 // 软删除时间
 }
 
 // TableName UserM's table name

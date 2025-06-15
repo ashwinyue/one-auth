@@ -36,10 +36,18 @@ message User {
 
 // LoginRequest 表示登录请求
 message LoginRequest {
-    // username 表示用户名称
-    string username = 1;
-    // password 表示用户密码
-    string password = 2;
+    // login_type 表示登录方式：username, email, phone
+    string login_type = 1;
+    // identifier 表示登录标识符（用户名、邮箱或手机号）
+    string identifier = 2;
+    // password 表示用户密码（密码登录时必填）
+    optional string password = 3;
+    // verify_code 表示验证码（验证码登录时必填）
+    optional string verify_code = 4;
+    // client_type 表示客户端类型：web, h5, android, ios, mini_program, op
+    optional string client_type = 5;
+    // device_id 表示设备ID（用于设备管理）
+    optional string device_id = 6;
 }
 
 // LoginResponse 表示登录响应
@@ -48,7 +56,69 @@ message LoginResponse {
     string token = 1;
     // expireAt 表示该 token 的过期时间
     google.protobuf.Timestamp expireAt = 2;
+    // refresh_token 表示刷新令牌
+    string refresh_token = 3;
+    // user_info 表示用户基本信息
+    UserInfo user_info = 4;
+    // session_id 表示会话ID
+    string session_id = 5;
 }
+
+// UserInfo 表示用户基本信息
+message UserInfo {
+    // user_id 表示用户ID
+    string user_id = 1;
+    // username 表示用户名
+    string username = 2;
+    // nickname 表示昵称
+    string nickname = 3;
+    // email 表示邮箱
+    string email = 4;
+    // phone 表示手机号
+    string phone = 5;
+    // status 表示用户状态：active, inactive, locked, banned
+    string status = 6;
+    // last_login_time 表示最后登录时间
+    google.protobuf.Timestamp last_login_time = 7;
+}
+
+// SendVerifyCodeRequest 表示发送验证码请求
+message SendVerifyCodeRequest {
+    // target 表示目标（邮箱或手机号）
+    string target = 1;
+    // code_type 表示验证码类型：login, register, reset_password
+    string code_type = 2;
+    // target_type 表示目标类型：email, phone
+    string target_type = 3;
+}
+
+// SendVerifyCodeResponse 表示发送验证码响应
+message SendVerifyCodeResponse {
+    // success 表示是否成功
+    bool success = 1;
+    // message 表示响应消息
+    string message = 2;
+    // cooldown_seconds 表示冷却时间（秒）
+    int32 cooldown_seconds = 3;
+}
+
+// LogoutRequest 表示登出请求
+message LogoutRequest {
+    // session_id 表示会话ID（可选，不传则登出当前会话）
+    optional string session_id = 1;
+    // logout_all 表示是否登出所有设备
+    optional bool logout_all = 2;
+}
+
+// LogoutResponse 表示登出响应
+message LogoutResponse {
+    // success 表示是否成功
+    bool success = 1;
+    // message 表示响应消息
+    string message = 2;
+}
+
+
 
 // RefreshTokenRequest 表示刷新令牌的请求
 message RefreshTokenRequest {

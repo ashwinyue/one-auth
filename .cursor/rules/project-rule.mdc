@@ -1,0 +1,146 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 项目开发规则
+
+## 项目开发前提
+
+### 参考原则
+1. **优先参考旧项目实现思路**：
+   - 在设计新功能时，首先查看 `a-old-project/auth-center` 的实现方案
+   - 保持核心架构思路的一致性，如认证流程、权限模型、缓存策略等
+   - 复用成熟的设计模式和最佳实践
+   - 在接口设计上保持兼容性，便于经验迁移
+
+2. **简化组织架构**：
+   - **旧项目特性**：包含完整的组织架构（组织、部门、年级等）和复杂的数据权限体系
+   - **新项目定位**：专注于基础的用户-租户权限模型，不需要复杂的组织层级
+   - **简化策略**：
+     - 移除组织、部门、年级相关的ID前缀和转换逻辑
+     - 简化数据权限为基本的用户-租户-资源三层模型
+     - 保留核心的RBAC功能，去除组织层级的权限继承
+     - 维持接口的简洁性和易用性
+
+### 架构适配原则
+- 从旧项目的企业级复杂架构中提取适合新项目的核心功能
+- 保持代码结构和命名规范的一致性
+- 简化但不失去扩展性，为未来可能的功能扩展预留接口
+
+## 认证授权规范
+
+### Casbin RBAC with Domains
+本项目使用Casbin的RBAC with Domains模型实现多租户权限控制，严格遵循官方规范：
+- 官方文档：https://casbin.org/zh/docs/rbac-with-domains
+- 英文文档：https://casbin.org/docs/rbac-with-domains
+
+### 核心规则
+1. **模型定义**：
+   - 请求定义：`r = sub, obj, dom`（修正：obj在dom之前，与旧项目保持一致）
+   - 策略定义：`p = sub, obj, dom`（修正：obj在dom之前）
+   - 角色定义：`g = _, _, _`（第三个参数为domain/租户）
+
+2. **ID前缀约定**（简化版）：
+   - 用户ID：`u{id}` (如：u123, u456)
+   - 角色ID：`r{id}` (如：r1, r2)
+   - 资源ID：`a{id}` (如：a1, a2) - 权限本质上是资源
+   - 租户ID：`t{id}` (如：t1, t2)
+   - 菜单ID：`m{id}` (如：m1, m2)
+   - **简化说明**：相比旧项目，移除了组织(o)、部门(d)、年级(g)等复杂组织架构的前缀
+   - 这样既保持性能优势，又提供良好的可读性和调试便利性
+
+3. **菜单权限强关联设计**：
+   - 权限表通过menu_id外键直接关联菜单表，避免字符串弱关联
+   - 权限表只存储基本信息（permission_id, name, description）
+   - API路径、HTTP方法等配置信息统一存储在菜单表中
+   - 使用数据库视图（v_api_permission_check）简化权限检查逻辑
+   - 避免数据冗余，确保数据一致性和维护便利性
+
+4. **命名约定**：
+   - 域令牌名称使用标准的 `dom`
+   - 方法命名不使用domain后缀（如：`AddRoleForUser` 而不是 `AddRoleForUserInDomain`）
+   - 遵循Casbin官方API命名规范
+
+5. **权限检查**：
+   - 优先使用 `AuthorizeWithDomain(sub, dom, obj, act)` 进行多租户授权
+   - 保留 `Authorize(sub, obj, act)` 作为兼容接口（使用默认租户）
+
+6. **数据库策略**：
+   - 策略格式：`(ptype, v0, v1, v2)` 对应 `(p, sub, obj, dom)`（修正：obj在dom之前）
+   - 角色分配：`(ptype, v0, v1, v2)` 对应 `(g, user, role, domain)`
+   - 在Casbin策略中使用带前缀的ID格式以提高可读性
+
+## 代码规范
+
+### 权限相关代码
+- 所有权限检查必须包含租户维度
+- 中间件中从上下文获取租户ID：`contextx.TenantID(ctx)`
+- 如果租户ID为空，使用默认租户 `"default"`
+- 内部使用TenantResolver进行ID转换，确保Casbin中使用带前缀的ID格式
+
+### ID解析规范
+- 支持多种格式的ID输入：带前缀（t1, r1）、纯数字（1, 2）、字符串标识符（default, admin）
+- 内部统一转换为带前缀的ID格式用于Casbin策略
+- 对外API返回用户友好的标识符格式
+- **简化实现**：使用统一的IDConverter替代多个解析器，参考旧项目接口设计但简化组织架构相关功能
+
+### 错误处理
+- 权限检查失败时返回 `errno.ErrPermissionDenied`
+- 包含详细的权限上下文信息（subject, domain, object, action）
+- ID解析失败时使用合理的默认值或返回原始值
+
+### 测试要求
+- 必须测试跨租户权限隔离
+- 验证同一用户在不同租户中的不同角色
+- 测试隐式权限和角色继承
+- 验证ID前缀格式的正确处理
+
+## 数据库设计规范
+
+### 表结构要求
+- 所有多租户相关表必须包含租户关联字段
+- 使用复合唯一索引确保租户内唯一性
+- 主键使用自增ID，业务标识符使用单独字段
+
+### 索引优化
+- Casbin策略表添加必要的复合索引
+- 租户、角色、权限查询的常用字段建立索引
+
+## 开发调试规范
+
+### 命令执行规范
+在执行构建、测试等命令时，必须先确认项目目录结构：
+
+1. **项目结构确认**：
+   - 本项目的主程序入口位于 `./cmd/mb-apiserver/`
+   - 不是 `./cmd/apiserver/`（此目录不存在）
+   - 执行构建命令前应使用 `ls cmd/` 确认目录结构
+
+2. **常用命令模板**：
+   ```bash
+   # 构建主程序
+   go build -o /tmp/test-build ./cmd/mb-apiserver
+   
+   # 运行主程序
+   go run ./cmd/mb-apiserver
+   
+   # 生成GORM模型
+   go run ./cmd/gen-gorm-model
+   ```
+
+3. **目录不存在错误处理**：
+   - 遇到 `directory not found` 错误时，先使用 `ls` 或 `find` 命令确认实际目录结构
+   - 不要假设目录名称，始终基于实际项目结构执行命令
+   - 在文档或脚本中记录正确的目录路径
+
+4. **调试最佳实践**：
+   - 执行命令前先验证路径存在性
+   - 使用相对路径时确保当前工作目录正确
+   - 构建失败时检查依赖和导入路径
+
+## 参考资源
+- **旧项目参考**：`a-old-project/auth-center` - 核心架构和实现思路的主要参考源
+- Casbin官方文档：https://casbin.org/docs/
+- RBAC with Domains：https://casbin.org/zh/docs/rbac-with-domains
+- Management API：https://casbin.org/docs/management-api

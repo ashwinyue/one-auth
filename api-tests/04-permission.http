@@ -1,0 +1,393 @@
+### One-Auth 权限管理接口测试
+### 基础URL配置
+@baseUrl = http://localhost:5555
+@contentType = application/json
+
+### 先登录获取Token
+# @name login
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("access_token", response.body.token);
+client.global.set("user_id", response.body.user_id);
+%}
+
+###
+
+### ==================== 权限检查 ====================
+
+### 1. 单个权限检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["user:read"]
+}
+
+###
+
+### 2. 批量权限检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": [
+    "user:read",
+    "user:write",
+    "user:delete",
+    "role:read",
+    "role:write",
+    "role:delete",
+    "post:read",
+    "post:write",
+    "post:delete"
+  ]
+}
+
+###
+
+### 3. 权限检查 - 包含资源ID
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": [
+    "user:read:{{user_id}}",
+    "user:write:{{user_id}}",
+    "post:read:post_123",
+    "post:write:post_123"
+  ]
+}
+
+###
+
+### 4. 权限检查 - 带租户上下文
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": [
+    "user:read",
+    "role:manage"
+  ],
+  "tenant_id": "tenant_123",
+  "context": {
+    "department": "IT",
+    "level": "manager"
+  }
+}
+
+###
+
+### ==================== API访问权限检查 ====================
+
+### 5. 检查GET用户列表权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/users&method=GET
+Authorization: Bearer {{access_token}}
+
+###
+
+### 6. 检查POST创建用户权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/users&method=POST
+Authorization: Bearer {{access_token}}
+
+###
+
+### 7. 检查PUT更新用户权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/users/{{user_id}}&method=PUT
+Authorization: Bearer {{access_token}}
+
+###
+
+### 8. 检查DELETE删除用户权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/users/{{user_id}}&method=DELETE
+Authorization: Bearer {{access_token}}
+
+###
+
+### 9. 检查角色管理权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/roles&method=GET
+Authorization: Bearer {{access_token}}
+
+###
+
+### 10. 检查博客管理权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/posts&method=GET
+Authorization: Bearer {{access_token}}
+
+###
+
+### 11. 检查系统管理权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/system/refresh-privilege&method=POST
+Authorization: Bearer {{access_token}}
+
+###
+
+### 12. 检查租户权限
+GET {{baseUrl}}/v1/api/check-access?path=/v1/tenants&method=GET&tenant_id=tenant_123
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 权限上下文检查 ====================
+
+### 13. 检查带资源ID的权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["user:update"],
+  "resource_type": "user",
+  "resource_id": "{{user_id}}",
+  "action": "update"
+}
+
+###
+
+### 14. 检查层级权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["department:manage"],
+  "hierarchy": {
+    "tenant": "tenant_123",
+    "department": "IT",
+    "team": "backend"
+  }
+}
+
+###
+
+### 15. 检查时间相关权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["system:maintenance"],
+  "time_context": {
+    "start_time": "09:00",
+    "end_time": "18:00",
+    "timezone": "Asia/Shanghai"
+  }
+}
+
+###
+
+### ==================== 权限批量操作 ====================
+
+### 16. 批量检查用户权限
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "batch_check": true,
+  "users": [
+    {
+      "user_id": "{{user_id}}",
+      "permissions": ["user:read", "user:write"]
+    },
+    {
+      "user_id": "user_002",
+      "permissions": ["user:read", "role:read"]
+    }
+  ]
+}
+
+###
+
+### 17. 检查权限继承
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["user:read"],
+  "check_inheritance": true,
+  "include_role_permissions": true,
+  "include_group_permissions": true
+}
+
+###
+
+### ==================== 条件权限检查 ====================
+
+### 18. 基于IP的权限检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["admin:system"],
+  "conditions": {
+    "ip_range": ["192.168.1.0/24", "10.0.0.0/8"],
+    "require_mfa": true
+  }
+}
+
+###
+
+### 19. 基于时间的权限检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["finance:report"],
+  "conditions": {
+    "time_range": {
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2024-12-31T23:59:59Z"
+    },
+    "weekdays_only": true
+  }
+}
+
+###
+
+### 20. 基于设备的权限检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["mobile:access"],
+  "conditions": {
+    "device_type": "mobile",
+    "trusted_device": true,
+    "app_version": ">=1.0.0"
+  }
+}
+
+###
+
+### ==================== 错误测试用例 ====================
+
+### 21. 权限检查 - 无效权限名称
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["invalid:permission:format"]
+}
+
+###
+
+### 22. 权限检查 - 空权限列表
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": []
+}
+
+###
+
+### 23. API访问检查 - 无效路径
+GET {{baseUrl}}/v1/api/check-access?path=/invalid/path&method=GET
+Authorization: Bearer {{access_token}}
+
+###
+
+### 24. API访问检查 - 无效HTTP方法
+GET {{baseUrl}}/v1/api/check-access?path=/v1/users&method=INVALID
+Authorization: Bearer {{access_token}}
+
+###
+
+### 25. 无Token的权限检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+
+{
+  "permissions": ["user:read"]
+}
+
+###
+
+### 26. 过期Token的权限检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer expired_token_here
+
+{
+  "permissions": ["user:read"]
+}
+
+###
+
+### ==================== 权限详细信息 ====================
+
+### 27. 获取权限详细信息
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["user:read", "user:write"],
+  "include_details": true,
+  "include_source": true,
+  "include_expiry": true
+}
+
+###
+
+### 28. 检查权限来源
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["role:manage"],
+  "trace_source": true,
+  "include_role_chain": true,
+  "include_policy_info": true
+}
+
+###
+
+### 29. 权限模拟检查
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["user:delete"],
+  "simulate_user": "user_002",
+  "simulate_context": {
+    "tenant": "tenant_456",
+    "role": "manager"
+  }
+}
+
+###
+
+### 30. 权限预检查（即将过期的权限）
+POST {{baseUrl}}/v1/permissions/check
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "permissions": ["temp:access"],
+  "check_expiry": true,
+  "warn_before_expiry": "24h"
+}
+
+### 

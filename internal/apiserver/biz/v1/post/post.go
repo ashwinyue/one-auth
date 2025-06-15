@@ -10,6 +10,7 @@ package post
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/ashwinyue/one-auth/pkg/store/where"
 	"github.com/jinzhu/copier"
@@ -53,6 +54,17 @@ func (b *postBiz) Create(ctx context.Context, rq *apiv1.CreatePostRequest) (*api
 	var postM model.PostM
 	_ = copier.Copy(&postM, rq)
 	postM.UserID = contextx.UserID(ctx)
+
+	// 设置租户ID
+	if tenantID := contextx.TenantID(ctx); tenantID != "" {
+		if id, err := strconv.ParseInt(tenantID, 10, 64); err == nil {
+			postM.TenantID = id
+		} else {
+			postM.TenantID = 1 // 默认租户ID
+		}
+	} else {
+		postM.TenantID = 1 // 默认租户ID
+	}
 
 	if err := b.store.Post().Create(ctx, &postM); err != nil {
 		return nil, err

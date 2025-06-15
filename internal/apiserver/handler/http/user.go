@@ -50,3 +50,13 @@ func (h *Handler) GetUser(c *gin.Context) {
 func (h *Handler) ListUser(c *gin.Context) {
 	core.HandleQueryRequest(c, h.biz.UserV1().List, h.val.ValidateListUserRequest)
 }
+
+// SendVerifyCode 发送验证码.
+func (h *Handler) SendVerifyCode(c *gin.Context) {
+	core.HandleJSONRequest(c, h.biz.UserV1().SendVerifyCode, h.val.ValidateSendVerifyCodeRequest)
+}
+
+// Logout 用户登出.
+func (h *Handler) Logout(c *gin.Context) {
+	core.HandleJSONRequest(c, h.biz.UserV1().Logout, h.val.ValidateLogoutRequest)
+}

@@ -32,4 +32,11 @@ var (
 
 	// ErrUserNotFound 表示未找到指定用户.
 	ErrUserNotFound = &errorsx.ErrorX{Code: http.StatusNotFound, Reason: "NotFound.UserNotFound", Message: "User not found."}
+
+	// ErrUserLocked 表示用户账户被锁定.
+	ErrUserLocked = &errorsx.ErrorX{Code: http.StatusForbidden, Reason: "Forbidden.UserLocked", Message: "User account is locked"}
+	// ErrUserInactive 表示用户账户未激活.
+	ErrUserInactive = &errorsx.ErrorX{Code: http.StatusForbidden, Reason: "Forbidden.UserInactive", Message: "User account is inactive"}
+	// ErrUserBanned 表示用户账户被封禁.
+	ErrUserBanned = &errorsx.ErrorX{Code: http.StatusForbidden, Reason: "Forbidden.UserBanned", Message: "User account is banned"}
 )

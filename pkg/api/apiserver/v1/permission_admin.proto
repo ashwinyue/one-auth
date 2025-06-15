@@ -1,0 +1,180 @@
+// Copyright 2024 孔令飞 <colin404@foxmail.com>. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file. The original repo for
+// this file is https://github.com/ashwinyue/one-auth. The professional
+// version of this repository is https://github.com/onexstack/onex.
+
+// 管理员权限自动分配 API 定义
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
+
+// CreateMenuWithPermissionsRequest 创建菜单并自动生成权限请求
+message CreateMenuWithPermissionsRequest {
+    // tenant_id 表示租户ID
+    int64 tenant_id = 1;
+    // menu_code 表示菜单编码
+    string menu_code = 2;
+    // title 表示菜单标题
+    string title = 3;
+    // route_path 表示路由路径
+    string route_path = 4;
+    // icon 表示图标
+    string icon = 5;
+    // parent_id 表示父菜单ID
+    int64 parent_id = 6;
+    // actions 表示需要创建的权限操作列表
+    repeated string actions = 7;
+    // visible 表示是否可见
+    bool visible = 8;
+}
+
+// CreateMenuWithPermissionsResponse 创建菜单并自动生成权限响应
+message CreateMenuWithPermissionsResponse {
+    // menu_id 表示创建的菜单ID
+    int64 menu_id = 1;
+    // permission_ids 表示创建的权限ID列表
+    repeated int64 permission_ids = 2;
+    // auto_assigned_roles 表示自动分配权限的角色列表
+    repeated string auto_assigned_roles = 3;
+}
+
+// PreviewPermissionAssignmentRequest 预览权限分配请求
+message PreviewPermissionAssignmentRequest {
+    // permission_code 表示权限编码
+    string permission_code = 1;
+}
+
+// PreviewPermissionAssignmentResponse 预览权限分配响应
+message PreviewPermissionAssignmentResponse {
+    // permission_code 表示权限编码
+    string permission_code = 1;
+    // will_assign_to_super_admin 表示是否会分配给超级管理员
+    bool will_assign_to_super_admin = 2;
+    // will_assign_to_admin 表示是否会分配给系统管理员
+    bool will_assign_to_admin = 3;
+    // admin_assign_reason 表示管理员分配原因
+    string admin_assign_reason = 4;
+}
+
+// SyncAdminPermissionsRequest 同步管理员权限请求
+message SyncAdminPermissionsRequest {
+    // tenant_id 表示租户ID
+    int64 tenant_id = 1;
+}
+
+// SyncAdminPermissionsResponse 同步管理员权限响应
+message SyncAdminPermissionsResponse {
+    // assigned_count 表示分配的权限数量
+    int32 assigned_count = 1;
+    // sync_details 表示同步详情
+    repeated SyncDetail sync_details = 2;
+}
+
+// SyncDetail 同步详情
+message SyncDetail {
+    // role_code 表示角色编码
+    string role_code = 1;
+    // role_name 表示角色名称
+    string role_name = 2;
+    // assigned_permissions 表示分配的权限数量
+    int32 assigned_permissions = 3;
+}
+
+// GetAutoAssignConfigRequest 获取自动分配配置请求
+message GetAutoAssignConfigRequest {
+    // tenant_id 表示租户ID
+    int64 tenant_id = 1;
+}
+
+// GetAutoAssignConfigResponse 获取自动分配配置响应
+message GetAutoAssignConfigResponse {
+    // enabled 表示是否启用自动分配
+    bool enabled = 1;
+    // super_admin_roles 表示超级管理员角色列表
+    repeated RoleInfo super_admin_roles = 2;
+    // admin_roles 表示系统管理员角色列表
+    repeated RoleInfo admin_roles = 3;
+    // permission_rules 表示权限分配规则
+    repeated PermissionRule permission_rules = 4;
+}
+
+// UpdateAutoAssignConfigRequest 更新自动分配配置请求
+message UpdateAutoAssignConfigRequest {
+    // tenant_id 表示租户ID
+    int64 tenant_id = 1;
+    // enabled 表示是否启用自动分配
+    bool enabled = 2;
+    // admin_role_ids 表示系统管理员角色ID列表
+    repeated int64 admin_role_ids = 3;
+    // permission_rules 表示权限分配规则
+    repeated PermissionRule permission_rules = 4;
+}
+
+// UpdateAutoAssignConfigResponse 更新自动分配配置响应
+message UpdateAutoAssignConfigResponse {
+    // success 表示是否成功
+    bool success = 1;
+    // message 表示操作结果消息
+    string message = 2;
+}
+
+// RoleInfo 角色信息
+message RoleInfo {
+    // id 表示角色ID
+    int64 id = 1;
+    // role_code 表示角色编码
+    string role_code = 2;
+    // name 表示角色名称
+    string name = 3;
+    // description 表示角色描述
+    string description = 4;
+}
+
+// PermissionRule 权限分配规则
+message PermissionRule {
+    // modules 表示匹配的权限模块
+    repeated string modules = 1;
+    // actions 表示匹配的权限操作
+    repeated string actions = 2;
+    // exclude_codes 表示排除的权限编码
+    repeated string exclude_codes = 3;
+    // include 表示是否包含该规则
+    bool include = 4;
+    // description 表示规则描述
+    string description = 5;
+}
+
+// GetAdminMissingPermissionsRequest 获取管理员缺失权限请求
+message GetAdminMissingPermissionsRequest {
+    // tenant_id 表示租户ID
+    int64 tenant_id = 1;
+    // role_id 表示角色ID（可选，默认获取所有管理员角色）
+    int64 role_id = 2;
+}
+
+// GetAdminMissingPermissionsResponse 获取管理员缺失权限响应
+message GetAdminMissingPermissionsResponse {
+    // missing_permissions 表示缺失的权限列表
+    repeated MissingPermission missing_permissions = 1;
+    // total_missing 表示总缺失数量
+    int32 total_missing = 2;
+}
+
+// MissingPermission 缺失权限信息
+message MissingPermission {
+    // permission_id 表示权限ID
+    int64 permission_id = 1;
+    // permission_code 表示权限编码
+    string permission_code = 2;
+    // permission_name 表示权限名称
+    string permission_name = 3;
+    // reason 表示缺失原因
+    string reason = 4;
+    // should_assign 表示是否应该分配
+    bool should_assign = 5;
+} 

@@ -1,0 +1,461 @@
+### One-Auth 博客文章管理接口测试
+### 基础URL配置
+@baseUrl = http://localhost:5555
+@contentType = application/json
+
+### 先登录获取Token
+# @name login
+POST {{baseUrl}}/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123",
+  "login_type": "username"
+}
+
+> {%
+client.global.set("access_token", response.body.token);
+client.global.set("user_id", response.body.user_id);
+%}
+
+###
+
+### ==================== 博客文章管理 ====================
+
+### 1. 创建博客文章
+# @name createPost
+POST {{baseUrl}}/v1/posts
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "Go语言开发最佳实践",
+  "content": "# Go语言开发最佳实践\n\n本文将介绍Go语言开发中的一些最佳实践...\n\n## 1. 代码规范\n\n- 使用gofmt格式化代码\n- 遵循Go命名规范\n- 编写有意义的注释\n\n## 2. 错误处理\n\n```go\nif err != nil {\n    return nil, fmt.Errorf(\"操作失败: %w\", err)\n}\n```\n\n## 3. 测试\n\n编写单元测试和集成测试是必不可少的。",
+  "summary": "分享Go语言开发中的最佳实践，包括代码规范、错误处理、测试等方面的经验。",
+  "tags": ["golang", "编程", "最佳实践", "开发规范"],
+  "category": "技术分享",
+  "status": 1,
+  "is_public": true,
+  "allow_comment": true,
+  "cover_image": "https://example.com/images/golang-best-practices.jpg",
+  "meta_keywords": "Go语言,最佳实践,代码规范,错误处理",
+  "meta_description": "Go语言开发最佳实践指南，帮助开发者写出更好的Go代码。",
+  "publish_time": "2024-06-15T10:00:00Z"
+}
+
+> {%
+client.global.set("created_post_id", response.body.post_id);
+%}
+
+###
+
+### 2. 创建另一篇博客文章
+# @name createPost2
+POST {{baseUrl}}/v1/posts
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "微服务架构设计原则",
+  "content": "# 微服务架构设计原则\n\n微服务架构是现代软件开发的重要趋势...\n\n## 核心原则\n\n1. **单一职责原则**\n2. **服务自治**\n3. **去中心化治理**\n4. **故障隔离**\n\n## 实施建议\n\n- 合理划分服务边界\n- 选择合适的通信方式\n- 建立完善的监控体系",
+  "summary": "探讨微服务架构的核心设计原则和实施建议。",
+  "tags": ["微服务", "架构设计", "分布式系统"],
+  "category": "架构设计",
+  "status": 1,
+  "is_public": true,
+  "allow_comment": true
+}
+
+> {%
+client.global.set("created_post_id_2", response.body.post_id);
+%}
+
+###
+
+### 3. 获取博客文章列表
+GET {{baseUrl}}/v1/posts?page=1&limit=10
+Authorization: Bearer {{access_token}}
+
+###
+
+### 4. 获取博客文章列表（带搜索）
+GET {{baseUrl}}/v1/posts?page=1&limit=10&search=Go语言&status=1
+Authorization: Bearer {{access_token}}
+
+###
+
+### 5. 获取博客文章列表（按分类筛选）
+GET {{baseUrl}}/v1/posts?category=技术分享&is_public=true&allow_comment=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 6. 获取博客文章列表（按标签筛选）
+GET {{baseUrl}}/v1/posts?tags=golang,编程&order_by=created_at&order=desc
+Authorization: Bearer {{access_token}}
+
+###
+
+### 7. 获取博客文章列表（按时间筛选）
+GET {{baseUrl}}/v1/posts?created_start=2024-01-01&created_end=2024-12-31&publish_start=2024-06-01
+Authorization: Bearer {{access_token}}
+
+###
+
+### 8. 获取博客文章详情
+GET {{baseUrl}}/v1/posts/{{created_post_id}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 9. 获取博客文章详情（包含统计信息）
+GET {{baseUrl}}/v1/posts/{{created_post_id}}?include_stats=true&include_comments=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 10. 更新博客文章
+PUT {{baseUrl}}/v1/posts/{{created_post_id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "Go语言开发最佳实践（更新版）",
+  "content": "# Go语言开发最佳实践（更新版）\n\n本文将介绍Go语言开发中的一些最佳实践，包含最新的更新内容...\n\n## 1. 代码规范\n\n- 使用gofmt格式化代码\n- 遵循Go命名规范\n- 编写有意义的注释\n- 使用go vet检查代码\n\n## 2. 错误处理\n\n```go\nif err != nil {\n    return nil, fmt.Errorf(\"操作失败: %w\", err)\n}\n```\n\n## 3. 测试\n\n编写单元测试和集成测试是必不可少的。\n\n## 4. 性能优化（新增）\n\n- 使用性能分析工具\n- 合理使用goroutine\n- 注意内存泄露",
+  "summary": "分享Go语言开发中的最佳实践，包括代码规范、错误处理、测试、性能优化等方面的经验。",
+  "tags": ["golang", "编程", "最佳实践", "开发规范", "性能优化"],
+  "category": "技术分享",
+  "status": 1,
+  "is_public": true,
+  "allow_comment": true,
+  "cover_image": "https://example.com/images/golang-best-practices-v2.jpg",
+  "meta_keywords": "Go语言,最佳实践,代码规范,错误处理,性能优化",
+  "meta_description": "Go语言开发最佳实践指南（更新版），帮助开发者写出更好、更高效的Go代码。",
+  "update_reason": "添加性能优化章节，完善内容结构"
+}
+
+###
+
+### 11. 部分更新博客文章
+PATCH {{baseUrl}}/v1/posts/{{created_post_id}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "tags": ["golang", "编程", "最佳实践", "开发规范", "性能优化", "新手指南"],
+  "allow_comment": false,
+  "update_reason": "添加新手指南标签，暂时关闭评论"
+}
+
+###
+
+### ==================== 博客文章状态管理 ====================
+
+### 12. 发布博客文章
+PUT {{baseUrl}}/v1/posts/{{created_post_id}}/publish
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "publish_time": "2024-06-15T14:00:00Z",
+  "notify_subscribers": true
+}
+
+###
+
+### 13. 取消发布博客文章
+PUT {{baseUrl}}/v1/posts/{{created_post_id}}/unpublish
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "reason": "需要进一步完善内容"
+}
+
+###
+
+### 14. 将博客文章设为草稿
+PUT {{baseUrl}}/v1/posts/{{created_post_id}}/draft
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{}
+
+###
+
+### 15. 归档博客文章
+PUT {{baseUrl}}/v1/posts/{{created_post_id}}/archive
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "reason": "内容已过时，进行归档处理"
+}
+
+###
+
+### ==================== 博客文章批量操作 ====================
+
+### 16. 批量更新博客文章状态
+PUT {{baseUrl}}/v1/posts/batch-status
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "post_ids": ["{{created_post_id}}", "{{created_post_id_2}}"],
+  "status": 1,
+  "operation": "publish"
+}
+
+###
+
+### 17. 批量更新博客文章分类
+PUT {{baseUrl}}/v1/posts/batch-category
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "post_ids": ["{{created_post_id}}", "{{created_post_id_2}}"],
+  "category": "技术文档"
+}
+
+###
+
+### 18. 批量添加标签
+PUT {{baseUrl}}/v1/posts/batch-tags
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "post_ids": ["{{created_post_id}}", "{{created_post_id_2}}"],
+  "tags": ["热门", "推荐"],
+  "operation": "add"
+}
+
+###
+
+### 19. 批量删除标签
+PUT {{baseUrl}}/v1/posts/batch-tags
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "post_ids": ["{{created_post_id}}"],
+  "tags": ["新手指南"],
+  "operation": "remove"
+}
+
+###
+
+### ==================== 博客文章查询和筛选 ====================
+
+### 20. 获取热门博客文章
+GET {{baseUrl}}/v1/posts/popular?limit=10&period=7d
+Authorization: Bearer {{access_token}}
+
+###
+
+### 21. 获取最新博客文章
+GET {{baseUrl}}/v1/posts/latest?limit=5&exclude_draft=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 22. 获取推荐博客文章
+GET {{baseUrl}}/v1/posts/recommended?user_id={{user_id}}&limit=8
+Authorization: Bearer {{access_token}}
+
+###
+
+### 23. 获取相关博客文章
+GET {{baseUrl}}/v1/posts/{{created_post_id}}/related?limit=5
+Authorization: Bearer {{access_token}}
+
+###
+
+### 24. 按作者获取博客文章
+GET {{baseUrl}}/v1/posts?author_id={{user_id}}&include_draft=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 25. 全文搜索博客文章
+GET {{baseUrl}}/v1/posts/search?q=Go语言 微服务&search_in=title,content,tags
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 博客文章统计 ====================
+
+### 26. 获取博客文章统计信息
+GET {{baseUrl}}/v1/posts/{{created_post_id}}/stats
+Authorization: Bearer {{access_token}}
+
+###
+
+### 27. 增加博客文章阅读量
+POST {{baseUrl}}/v1/posts/{{created_post_id}}/view
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "ip": "192.168.1.100",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+}
+
+###
+
+### 28. 获取博客文章阅读历史
+GET {{baseUrl}}/v1/posts/{{created_post_id}}/view-history?limit=20
+Authorization: Bearer {{access_token}}
+
+###
+
+### 29. 获取用户的博客统计
+GET {{baseUrl}}/v1/user/posts/stats?period=30d
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 博客文章导入导出 ====================
+
+### 30. 导出博客文章
+GET {{baseUrl}}/v1/posts/export?format=markdown&post_ids={{created_post_id}},{{created_post_id_2}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 31. 导出博客文章为JSON
+GET {{baseUrl}}/v1/posts/export?format=json&category=技术分享&include_meta=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 32. 批量导入博客文章（模拟）
+POST {{baseUrl}}/v1/posts/import
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "format": "markdown",
+  "posts": [
+    {
+      "title": "Docker容器化实践",
+      "content": "# Docker容器化实践\n\n容器化技术已经成为现代软件部署的标准...",
+      "tags": ["docker", "容器", "devops"],
+      "category": "运维技术"
+    }
+  ],
+  "options": {
+    "auto_publish": false,
+    "skip_duplicates": true
+  }
+}
+
+###
+
+### ==================== 删除操作 ====================
+
+### 33. 软删除博客文章
+DELETE {{baseUrl}}/v1/posts/{{created_post_id_2}}?soft=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### 34. 批量删除博客文章
+DELETE {{baseUrl}}/v1/posts
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "post_ids": ["{{created_post_id}}"],
+  "delete_type": "soft",
+  "reason": "测试完成，清理数据"
+}
+
+###
+
+### 35. 恢复已删除的博客文章
+PUT {{baseUrl}}/v1/posts/{{created_post_id_2}}/restore
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "reason": "误删除，需要恢复"
+}
+
+###
+
+### 36. 永久删除博客文章
+DELETE {{baseUrl}}/v1/posts/{{created_post_id_2}}?permanent=true
+Authorization: Bearer {{access_token}}
+
+###
+
+### ==================== 错误测试用例 ====================
+
+### 37. 创建博客文章 - 缺少必填字段
+POST {{baseUrl}}/v1/posts
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "content": "只有内容，没有标题"
+}
+
+###
+
+### 38. 更新不存在的博客文章
+PUT {{baseUrl}}/v1/posts/nonexistent_post_id
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "尝试更新不存在的文章"
+}
+
+###
+
+### 39. 无权限访问他人的博客文章
+GET {{baseUrl}}/v1/posts/other_user_post_id
+Authorization: Bearer {{access_token}}
+
+###
+
+### 40. 无Token访问博客文章
+GET {{baseUrl}}/v1/posts
+
+###
+
+### 41. 创建博客文章 - 标题过长
+POST {{baseUrl}}/v1/posts
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "这是一个非常非常非常非常非常非常非常非常非常非常长的标题，超过了系统允许的最大长度限制，应该会返回错误信息这是一个非常非常非常非常非常非常非常非常非常非常长的标题，超过了系统允许的最大长度限制",
+  "content": "测试标题长度限制的内容"
+}
+
+###
+
+### 42. 批量操作 - 空的文章ID列表
+PUT {{baseUrl}}/v1/posts/batch-status
+Content-Type: {{contentType}}
+Authorization: Bearer {{access_token}}
+
+{
+  "post_ids": [],
+  "status": 1
+}
+
+###
+
+### ==================== 清理测试数据 ====================
+
+### 43. 永久删除所有测试博客文章
+DELETE {{baseUrl}}/v1/posts/{{created_post_id}}?permanent=true
+Authorization: Bearer {{access_token}}
+
+### 

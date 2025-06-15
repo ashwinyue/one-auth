@@ -1,0 +1,113 @@
+// Copyright 2024 孔令飞 <colin404@foxmail.com>. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file. The original repo for
+// this file is https://github.com/ashwinyue/one-auth. The professional
+// version of this repository is https://github.com/onexstack/onex.
+
+// 租户管理 API 定义
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/timestamp.proto";
+import "apiserver/v1/permission.proto";
+import "apiserver/v1/menu.proto";
+
+option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
+
+// Tenant 表示租户信息
+message Tenant {
+    // id 表示租户主键ID
+    int64 id = 1;
+    // tenant_code 表示租户编码
+    string tenant_code = 2;
+    // name 表示租户名称
+    string name = 3;
+    // description 表示租户描述
+    string description = 4;
+    // status 表示租户状态
+    int32 status = 5;
+    // created_at 表示创建时间
+    google.protobuf.Timestamp created_at = 6;
+    // updated_at 表示更新时间
+    google.protobuf.Timestamp updated_at = 7;
+}
+
+// UserProfile 表示用户完整信息
+message UserProfile {
+    // id 表示用户主键ID
+    int64 id = 1;
+    // user_id 表示用户业务ID
+    string user_id = 2;
+    // username 表示用户名
+    string username = 3;
+    // nickname 表示用户昵称
+    string nickname = 4;
+    // email 表示用户邮箱
+    string email = 5;
+    // phone 表示用户手机号
+    string phone = 6;
+    // current_tenant 表示当前租户
+    Tenant current_tenant = 7;
+}
+
+// GetUserTenantsRequest 表示获取用户租户列表请求
+message GetUserTenantsRequest {
+}
+
+// GetUserTenantsResponse 表示获取用户租户列表响应
+message GetUserTenantsResponse {
+    // tenants 表示租户列表
+    repeated Tenant tenants = 1;
+}
+
+// SwitchTenantRequest 表示切换租户请求
+message SwitchTenantRequest {
+    // tenant_id 表示要切换到的租户ID
+    int64 tenant_id = 1;
+}
+
+// SwitchTenantResponse 表示切换租户响应
+message SwitchTenantResponse {
+    // success 表示是否成功
+    bool success = 1;
+}
+
+// GetUserProfileRequest 表示获取用户完整信息请求
+message GetUserProfileRequest {
+    // tenant_id 表示租户ID
+    // @gotags: form:"tenant_id"
+    int64 tenant_id = 1;
+}
+
+// GetUserProfileResponse 表示获取用户完整信息响应
+message GetUserProfileResponse {
+    // user 表示用户信息
+    UserProfile user = 1;
+    // roles 表示用户角色列表
+    repeated string roles = 2;
+    // permissions 表示用户权限列表
+    repeated Permission permissions = 3;
+    // menus 表示用户可访问菜单
+    repeated Menu menus = 4;
+}
+
+// ListTenantsRequest 表示获取租户列表请求
+message ListTenantsRequest {
+    // offset 表示偏移量
+    // @gotags: form:"offset"
+    int64 offset = 1;
+    // limit 表示每页数量
+    // @gotags: form:"limit"
+    int64 limit = 2;
+}
+
+// ListTenantsResponse 表示获取租户列表响应
+message ListTenantsResponse {
+    // total_count 表示总数量
+    int64 total_count = 1;
+    // tenants 表示租户列表
+    repeated Tenant tenants = 2;
+}
+
+ 

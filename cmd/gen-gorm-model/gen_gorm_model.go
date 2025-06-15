@@ -148,11 +148,11 @@ func createGenerator(packagePath string) *gen.Generator {
 func applyGeneratorOptions(g *gen.Generator) {
 	// 为特定字段自定义 GORM 标签
 	g.WithOpts(
-		gen.FieldGORMTag("createdAt", func(tag field.GormTag) field.GormTag {
+		gen.FieldGORMTag("created_at", func(tag field.GormTag) field.GormTag {
 			tag.Set("default", "current_timestamp")
 			return tag
 		}),
-		gen.FieldGORMTag("updatedAt", func(tag field.GormTag) field.GormTag {
+		gen.FieldGORMTag("updated_at", func(tag field.GormTag) field.GormTag {
 			tag.Set("default", "current_timestamp")
 			return tag
 		}),
@@ -169,12 +169,16 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 			tag.Set("uniqueIndex", "idx_user_username")
 			return tag
 		}),
-		gen.FieldGORMTag("userID", func(tag field.GormTag) field.GormTag {
-			tag.Set("uniqueIndex", "idx_user_userID")
+		gen.FieldGORMTag("user_id", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_user_user_id")
 			return tag
 		}),
 		gen.FieldGORMTag("phone", func(tag field.GormTag) field.GormTag {
 			tag.Set("uniqueIndex", "idx_user_phone")
+			return tag
+		}),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
 			return tag
 		}),
 	)
@@ -182,15 +186,85 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		"post",
 		"PostM",
 		gen.FieldIgnore("placeholder"),
-		gen.FieldGORMTag("postID", func(tag field.GormTag) field.GormTag {
-			tag.Set("uniqueIndex", "idx_post_postID")
+		gen.FieldGORMTag("post_id", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_post_post_id")
+			return tag
+		}),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
 			return tag
 		}),
 	)
 	g.GenerateModelAs(
 		"casbin_rule",
 		"CasbinRuleM",
-		gen.FieldRename("ptype", "PType"),
-		gen.FieldIgnore("placeholder"),
 	)
+
+	// 生成RBAC相关模型
+	g.GenerateModelAs(
+		"tenants",
+		"TenantM",
+		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("tenant_code", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_tenant_code")
+			return tag
+		}),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
+			return tag
+		}),
+	)
+
+	g.GenerateModelAs(
+		"roles",
+		"RoleM",
+		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("role_code", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_role_code_tenant")
+			return tag
+		}),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
+			return tag
+		}),
+	)
+
+	g.GenerateModelAs(
+		"permissions",
+		"PermissionM",
+		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("permission_code", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_permission_code_tenant")
+			return tag
+		}),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
+			return tag
+		}),
+	)
+
+	g.GenerateModelAs(
+		"menus",
+		"MenuM",
+		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("menu_code", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_menu_code_tenant")
+			return tag
+		}),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
+			return tag
+		}),
+	)
+
+	g.GenerateModelAs(
+		"user_tenants",
+		"UserTenantM",
+		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
+			return tag
+		}),
+	)
+
 }

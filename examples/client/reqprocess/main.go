@@ -54,8 +54,9 @@ func main() {
 	log.Printf("[CreateUser     ] Success to create user, userID: %s", createUserResponse.UserID)
 
 	loginResponse, err := client.Login(ctx, &apiv1.LoginRequest{
-		Username: createUserRequest.Username,
-		Password: createUserRequest.Password,
+		LoginType:  "username",
+		Identifier: createUserRequest.Username,
+		Password:   &createUserRequest.Password,
 	})
 	if err != nil {
 		log.Fatalf("Failed to login: %v", err)
