@@ -21,18 +21,16 @@ message Permission {
     int64 tenant_id = 2;
     // menu_id 表示菜单ID
     int64 menu_id = 3;
-    // permission_code 表示权限编码
-    string permission_code = 4;
     // name 表示权限名称
-    string name = 5;
+    string name = 4;
     // description 表示权限描述
-    string description = 6;
+    string description = 5;
     // status 表示权限状态
-    int32 status = 7;
+    int32 status = 6;
     // created_at 表示创建时间
-    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp created_at = 7;
     // updated_at 表示更新时间
-    google.protobuf.Timestamp updated_at = 9;
+    google.protobuf.Timestamp updated_at = 8;
 }
 
 // GetUserPermissionsRequest 表示获取用户权限请求
@@ -52,14 +50,14 @@ message GetUserPermissionsResponse {
 message CheckPermissionsRequest {
     // tenant_id 表示租户ID
     int64 tenant_id = 1;
-    // permissions 表示要检查的权限编码列表
-    repeated string permissions = 2;
+    // permission_ids 表示要检查的权限ID列表
+    repeated int64 permission_ids = 2;
 }
 
 // CheckPermissionsResponse 表示批量检查权限响应
 message CheckPermissionsResponse {
-    // results 表示权限检查结果，key为权限编码，value为是否有权限
-    map<string, bool> results = 1;
+    // results 表示权限检查结果，key为权限ID，value为是否有权限
+    map<int64, bool> results = 1;
 }
 
 // CheckAPIAccessRequest 表示检查API访问权限请求

@@ -31,11 +31,8 @@ type RoleExpansion interface {
 	// 按租户获取角色列表
 	GetRolesByTenant(ctx context.Context, tenantID int64, opts *where.Options) (int64, []*model.RoleM, error)
 
-	// 检查角色代码是否已存在（在指定租户内）
-	IsRoleCodeExists(ctx context.Context, roleCode string, tenantID int64) (bool, error)
-
-	// 根据角色代码获取角色（在指定租户内）
-	GetByRoleCode(ctx context.Context, roleCode string, tenantID int64) (*model.RoleM, error)
+	// 检查角色名称是否已存在（在指定租户内）
+	CheckNameExists(ctx context.Context, name string, tenantID int64) (bool, error)
 
 	// 获取活跃角色列表（状态为启用的角色）
 	GetActiveRoles(ctx context.Context, tenantID int64, opts *where.Options) (int64, []*model.RoleM, error)
@@ -69,21 +66,15 @@ func (s *roleStore) GetRolesByTenant(ctx context.Context, tenantID int64, opts *
 	return s.List(ctx, opts)
 }
 
-// IsRoleCodeExists 检查角色代码是否已存在
-func (s *roleStore) IsRoleCodeExists(ctx context.Context, roleCode string, tenantID int64) (bool, error) {
+// CheckNameExists 检查角色名称是否已存在
+func (s *roleStore) CheckNameExists(ctx context.Context, name string, tenantID int64) (bool, error) {
 	// 使用通用的Get方法检查是否存在
-	_, err := s.Get(ctx, where.F("role_code", roleCode, "tenant_id", tenantID))
+	_, err := s.Get(ctx, where.F("name", name, "tenant_id", tenantID))
 	if err != nil {
 		// 如果是记录不存在错误，返回false
 		return false, nil
 	}
 	return true, nil
-}
-
-// GetByRoleCode 根据角色代码获取角色
-func (s *roleStore) GetByRoleCode(ctx context.Context, roleCode string, tenantID int64) (*model.RoleM, error) {
-	// 使用通用的Get方法
-	return s.Get(ctx, where.F("role_code", roleCode, "tenant_id", tenantID))
 }
 
 // GetActiveRoles 获取活跃角色列表

@@ -21,36 +21,34 @@ message Menu {
     int64 tenant_id = 2;
     // parent_id 表示父菜单ID
     int64 parent_id = 3;
-    // menu_code 表示菜单编码
-    string menu_code = 4;
     // title 表示菜单标题
-    string title = 5;
+    string title = 4;
     // route_path 表示前端路由路径
-    string route_path = 6;
+    string route_path = 5;
     // api_path 表示API访问路径
-    string api_path = 7;
+    string api_path = 6;
     // http_methods 表示支持的HTTP方法
-    string http_methods = 8;
+    string http_methods = 7;
     // require_auth 表示是否需要认证
-    bool require_auth = 9;
+    bool require_auth = 8;
     // component 表示前端组件路径
-    string component = 10;
+    string component = 9;
     // icon 表示图标
-    string icon = 11;
+    string icon = 10;
     // sort_order 表示排序
-    int32 sort_order = 12;
+    int32 sort_order = 11;
     // menu_type 表示菜单类型：1-菜单，2-按钮，3-接口
-    int32 menu_type = 13;
+    int32 menu_type = 12;
     // visible 表示是否可见
-    bool visible = 14;
+    bool visible = 13;
     // status 表示状态
-    int32 status = 15;
+    int32 status = 14;
     // children 表示子菜单
-    repeated Menu children = 16;
+    repeated Menu children = 15;
     // created_at 表示创建时间
-    google.protobuf.Timestamp created_at = 17;
+    google.protobuf.Timestamp created_at = 16;
     // updated_at 表示更新时间
-    google.protobuf.Timestamp updated_at = 18;
+    google.protobuf.Timestamp updated_at = 17;
 }
 
 // CreateMenuRequest 表示创建菜单请求
@@ -59,26 +57,24 @@ message CreateMenuRequest {
     int64 tenant_id = 1;
     // parent_id 表示父菜单ID
     int64 parent_id = 2;
-    // menu_code 表示菜单编码
-    string menu_code = 3;
     // title 表示菜单标题
-    string title = 4;
+    string title = 3;
     // route_path 表示前端路由路径
-    string route_path = 5;
+    string route_path = 4;
     // component 表示前端组件路径
-    string component = 6;
+    string component = 5;
     // icon 表示图标
-    string icon = 7;
+    string icon = 6;
     // sort_order 表示排序
-    int32 sort_order = 8;
+    int32 sort_order = 7;
     // menu_type 表示菜单类型
-    int32 menu_type = 9;
+    int32 menu_type = 8;
     // visible 表示是否可见
-    bool visible = 10;
+    bool visible = 9;
     // status 表示状态
-    bool status = 11;
+    bool status = 10;
     // remark 表示备注
-    string remark = 12;
+    string remark = 11;
 }
 
 // CreateMenuResponse 表示创建菜单响应
@@ -95,26 +91,24 @@ message UpdateMenuRequest {
     int64 menu_id = 1;
     // parent_id 表示父菜单ID（可选）
     optional int64 parent_id = 2;
-    // menu_code 表示菜单编码（可选）
-    string menu_code = 3;
     // title 表示菜单标题（可选）
-    string title = 4;
+    string title = 3;
     // route_path 表示前端路由路径（可选）
-    optional string route_path = 5;
+    optional string route_path = 4;
     // component 表示前端组件路径（可选）
-    optional string component = 6;
+    optional string component = 5;
     // icon 表示图标（可选）
-    optional string icon = 7;
+    optional string icon = 6;
     // sort_order 表示排序（可选）
-    optional int32 sort_order = 8;
+    optional int32 sort_order = 7;
     // menu_type 表示菜单类型（可选）
-    optional int32 menu_type = 9;
+    optional int32 menu_type = 8;
     // visible 表示是否可见（可选）
-    optional bool visible = 10;
+    optional bool visible = 9;
     // status 表示状态（可选）
-    optional bool status = 11;
+    optional bool status = 10;
     // remark 表示备注（可选）
-    optional string remark = 12;
+    optional string remark = 11;
 }
 
 // UpdateMenuResponse 表示更新菜单响应
@@ -250,10 +244,8 @@ message CopyMenuRequest {
     int64 target_tenant_id = 2;
     // target_parent_id 表示目标父菜单ID（可选）
     optional int64 target_parent_id = 3;
-    // new_menu_code 表示新菜单编码（可选，不指定则自动生成）
-    string new_menu_code = 4;
     // copy_permissions 表示是否复制权限
-    bool copy_permissions = 5;
+    bool copy_permissions = 4;
 }
 
 // CopyMenuResponse 表示复制菜单响应

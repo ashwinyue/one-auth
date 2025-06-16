@@ -34,28 +34,28 @@ message MenuPermission {
 
 // PermissionConfig 权限配置
 message PermissionConfig {
-    // permission_code 权限编码
-    string permission_code = 1;
+    // permission_id 权限ID（优先使用）
+    int64 permission_id = 1;
+    // permission_name 权限名称（用于查找或创建）
+    string permission_name = 2;
     // is_required 是否为必需权限
-    bool is_required = 2;
+    bool is_required = 3;
     // auto_create 如果权限不存在是否自动创建
-    bool auto_create = 3;
+    bool auto_create = 4;
 }
 
 // MenuWithPermissions 带权限的菜单
 message MenuWithPermissions {
     // menu_id 菜单ID
     int64 menu_id = 1;
-    // menu_code 菜单编码
-    string menu_code = 2;
     // title 菜单标题
-    string title = 3;
+    string title = 2;
     // permissions 所有权限
-    repeated Permission permissions = 4;
+    repeated Permission permissions = 3;
     // required_permissions 必需权限
-    repeated Permission required_permissions = 5;
+    repeated Permission required_permissions = 4;
     // available_actions 可执行的操作
-    repeated string available_actions = 6;
+    repeated string available_actions = 5;
 }
 
 // ConfigureMenuPermissionsRequest 配置菜单权限请求

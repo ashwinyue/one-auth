@@ -21,39 +21,49 @@ message Role {
     int64 id = 1;
     // tenant_id 表示租户ID
     int64 tenant_id = 2;
-    // role_code 表示角色编码
-    string role_code = 3;
     // name 表示角色名称
-    string name = 4;
+    string name = 3;
     // description 表示角色描述
-    string description = 5;
+    string description = 4;
     // status 表示角色状态
-    int32 status = 6;
+    int32 status = 5;
     // created_at 表示创建时间
-    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp created_at = 6;
     // updated_at 表示更新时间
-    google.protobuf.Timestamp updated_at = 8;
+    google.protobuf.Timestamp updated_at = 7;
 }
 
-// ListRolesRequest 表示获取角色列表请求
+// ListRolesRequest 表示角色列表请求
 message ListRolesRequest {
     // tenant_id 表示租户ID
     // @gotags: form:"tenant_id"
     int64 tenant_id = 1;
-    // offset 表示偏移量
-    // @gotags: form:"offset"
-    int64 offset = 2;
     // limit 表示每页数量
     // @gotags: form:"limit"
-    int64 limit = 3;
+    int64 limit = 2;
+    // offset 表示偏移量
+    // @gotags: form:"offset" 
+    int64 offset = 3;
 }
 
-// ListRolesResponse 表示获取角色列表响应
+// ListRolesResponse 表示角色列表响应
 message ListRolesResponse {
-    // total_count 表示总数量
-    int64 total_count = 1;
     // roles 表示角色列表
-    repeated Role roles = 2;
+    repeated Role roles = 1;
+    // total_count 表示总数量
+    int64 total_count = 2;
+}
+
+// GetRoleRequest 表示获取角色请求
+message GetRoleRequest {
+    // role_id 表示角色ID
+    int64 role_id = 1;
+}
+
+// GetRoleResponse 表示获取角色响应
+message GetRoleResponse {
+    // role 表示角色信息
+    Role role = 1;
 }
 
 // GetRolePermissionsRequest 表示获取角色权限请求
@@ -112,12 +122,10 @@ message AssignUserRolesResponse {
 message CreateRoleRequest {
     // tenant_id 表示租户ID
     int64 tenant_id = 1;
-    // role_code 表示角色编码
-    string role_code = 2;
     // name 表示角色名称
-    string name = 3;
+    string name = 2;
     // description 表示角色描述
-    string description = 4;
+    string description = 3;
 }
 
 // CreateRoleResponse 表示创建角色响应

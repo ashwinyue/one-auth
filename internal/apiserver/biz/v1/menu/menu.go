@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/ashwinyue/one-auth/internal/apiserver/model"
 	"github.com/ashwinyue/one-auth/internal/apiserver/store"
@@ -72,16 +71,6 @@ func NewMenuBiz(ds store.IStore, authz *authz.Authz) *menuBiz {
 
 // CreateMenu 创建菜单
 func (b *menuBiz) CreateMenu(ctx context.Context, r *v1.CreateMenuRequest) (*v1.CreateMenuResponse, error) {
-	// 验证菜单编码是否已存在
-	exists, err := b.ds.Menu().IsMenuCodeExists(ctx, r.MenuCode, r.TenantId)
-	if err != nil {
-		log.W(ctx).Errorw("Failed to check menu code existence", "menu_code", r.MenuCode, "err", err)
-		return nil, errno.ErrDBRead.WithMessage(err.Error())
-	}
-	if exists {
-		return nil, errno.ErrMenuCodeExists.WithMessage(fmt.Sprintf("菜单编码 %s 已存在", r.MenuCode))
-	}
-
 	// 如果指定了父菜单，验证父菜单是否存在
 	if r.ParentId > 0 {
 		_, err := b.ds.Menu().Get(ctx, where.F("id", r.ParentId, "tenant_id", r.TenantId))
@@ -94,7 +83,6 @@ func (b *menuBiz) CreateMenu(ctx context.Context, r *v1.CreateMenuRequest) (*v1.
 	// 创建菜单模型
 	menu := &model.MenuM{
 		TenantID:  r.TenantId,
-		MenuCode:  r.MenuCode,
 		Title:     r.Title,
 		MenuType:  r.MenuType,
 		SortOrder: r.SortOrder,
@@ -120,13 +108,13 @@ func (b *menuBiz) CreateMenu(ctx context.Context, r *v1.CreateMenuRequest) (*v1.
 	}
 
 	// 保存菜单
-	err = b.ds.Menu().Create(ctx, menu)
+	err := b.ds.Menu().Create(ctx, menu)
 	if err != nil {
-		log.W(ctx).Errorw("Failed to create menu", "menu_code", r.MenuCode, "err", err)
+		log.W(ctx).Errorw("Failed to create menu", "title", r.Title, "err", err)
 		return nil, errno.ErrDBWrite.WithMessage(err.Error())
 	}
 
-	log.W(ctx).Infow("Menu created successfully", "menu_id", menu.ID, "menu_code", r.MenuCode)
+	log.W(ctx).Infow("Menu created successfully", "menu_id", menu.ID, "title", r.Title)
 
 	return &v1.CreateMenuResponse{
 		MenuId:  menu.ID,
@@ -141,19 +129,6 @@ func (b *menuBiz) UpdateMenu(ctx context.Context, r *v1.UpdateMenuRequest) (*v1.
 	if err != nil {
 		log.W(ctx).Errorw("Menu not found", "menu_id", r.MenuId, "err", err)
 		return nil, errno.ErrMenuNotFound.WithMessage(fmt.Sprintf("菜单ID %d 不存在", r.MenuId))
-	}
-
-	// 如果更新菜单编码，检查是否与其他菜单冲突
-	if r.MenuCode != "" && r.MenuCode != menu.MenuCode {
-		exists, err := b.ds.Menu().IsMenuCodeExists(ctx, r.MenuCode, menu.TenantID)
-		if err != nil {
-			log.W(ctx).Errorw("Failed to check menu code existence", "menu_code", r.MenuCode, "err", err)
-			return nil, errno.ErrDBRead.WithMessage(err.Error())
-		}
-		if exists {
-			return nil, errno.ErrMenuCodeExists.WithMessage(fmt.Sprintf("菜单编码 %s 已存在", r.MenuCode))
-		}
-		menu.MenuCode = r.MenuCode
 	}
 
 	// 如果更新父菜单，验证父菜单是否存在且不会形成循环引用
@@ -475,27 +450,19 @@ func (b *menuBiz) CopyMenu(ctx context.Context, r *v1.CopyMenuRequest) (*v1.Copy
 		return nil, errno.ErrMenuNotFound.WithMessage(fmt.Sprintf("源菜单ID %d 不存在", r.SourceMenuId))
 	}
 
-	// 生成新的菜单编码
-	newMenuCode := r.NewMenuCode
-	if newMenuCode == "" {
-		newMenuCode = fmt.Sprintf("%s_copy_%d", sourceMenu.MenuCode, time.Now().Unix())
-	}
-
-	// 检查新菜单编码是否已存在
-	exists, err := b.ds.Menu().IsMenuCodeExists(ctx, newMenuCode, r.TargetTenantId)
-	if err != nil {
-		log.W(ctx).Errorw("Failed to check new menu code existence", "new_menu_code", newMenuCode, "err", err)
-		return nil, errno.ErrDBRead.WithMessage(err.Error())
-	}
-	if exists {
-		return nil, errno.ErrMenuCodeExists.WithMessage(fmt.Sprintf("菜单编码 %s 已存在", newMenuCode))
+	// 如果指定了目标父菜单，验证其是否存在
+	if r.TargetParentId != nil && *r.TargetParentId > 0 {
+		_, err := b.ds.Menu().Get(ctx, where.F("id", *r.TargetParentId, "tenant_id", r.TargetTenantId))
+		if err != nil {
+			log.W(ctx).Errorw("Target parent menu not found", "parent_id", *r.TargetParentId, "err", err)
+			return nil, errno.ErrMenuNotFound.WithMessage(fmt.Sprintf("目标父菜单ID %d 不存在", *r.TargetParentId))
+		}
 	}
 
 	// 创建新菜单
 	newMenu := &model.MenuM{
 		TenantID:  r.TargetTenantId,
-		MenuCode:  newMenuCode,
-		Title:     sourceMenu.Title,
+		Title:     sourceMenu.Title + " (副本)",
 		MenuType:  sourceMenu.MenuType,
 		RoutePath: sourceMenu.RoutePath,
 		Component: sourceMenu.Component,
@@ -506,33 +473,34 @@ func (b *menuBiz) CopyMenu(ctx context.Context, r *v1.CopyMenuRequest) (*v1.Copy
 		Remark:    sourceMenu.Remark,
 	}
 
-	// 处理父菜单
 	if r.TargetParentId != nil {
 		newMenu.ParentID = r.TargetParentId
-	} else {
-		newMenu.ParentID = sourceMenu.ParentID
 	}
 
 	// 保存新菜单
 	err = b.ds.Menu().Create(ctx, newMenu)
 	if err != nil {
-		log.W(ctx).Errorw("Failed to copy menu", "source_menu_id", r.SourceMenuId, "err", err)
+		log.W(ctx).Errorw("Failed to create copied menu", "source_menu_id", r.SourceMenuId, "err", err)
 		return nil, errno.ErrDBWrite.WithMessage(err.Error())
 	}
 
-	// 如果需要复制权限
+	// 如果需要复制权限，复制菜单权限关联
 	if r.CopyPermissions {
 		sourcePermissions, err := b.ds.MenuPermission().GetMenuPermissions(ctx, r.SourceMenuId)
 		if err == nil && len(sourcePermissions) > 0 {
 			var permConfigs []model.MenuPermissionConfig
 			for _, perm := range sourcePermissions {
 				permConfigs = append(permConfigs, model.MenuPermissionConfig{
-					PermissionCode: perm.PermissionCode,
-					IsRequired:     true, // 简化处理，都设为必需权限
-					AutoCreate:     true,
+					PermissionID: perm.ID,
+					IsRequired:   true, // 复制时默认为必需权限
+					AutoCreate:   false,
 				})
 			}
-			_ = b.ds.MenuPermission().ConfigureMenuPermissions(ctx, newMenu.ID, permConfigs)
+
+			// 忽略权限复制错误，只记录日志
+			if err := b.ds.MenuPermission().ConfigureMenuPermissions(ctx, newMenu.ID, permConfigs); err != nil {
+				log.W(ctx).Errorw("Failed to copy menu permissions", "new_menu_id", newMenu.ID, "err", err)
+			}
 		}
 	}
 
@@ -624,7 +592,6 @@ func convertMenuToAPI(menu *model.MenuM) *v1.Menu {
 	apiMenu := &v1.Menu{
 		Id:        menu.ID,
 		TenantId:  menu.TenantID,
-		MenuCode:  menu.MenuCode,
 		Title:     menu.Title,
 		MenuType:  menu.MenuType,
 		SortOrder: menu.SortOrder,

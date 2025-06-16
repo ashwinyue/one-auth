@@ -117,21 +117,8 @@ func (r *DefaultTenantResolver) GetTenantIdentifier(tenantID int64) (string, err
 		return "default", nil
 	}
 
-	// 从数据库查询
-	var tenant struct {
-		TenantCode string `gorm:"column:tenant_code"`
-	}
-
-	err := r.db.Table("tenants").
-		Select("tenant_code").
-		Where("id = ? AND deleted_at IS NULL", tenantID).
-		First(&tenant).Error
-
-	if err != nil {
-		return "default", err
-	}
-
-	return tenant.TenantCode, nil
+	// 直接使用租户ID作为标识符，格式：t{id}
+	return fmt.Sprintf("t%d", tenantID), nil
 }
 
 // GetRoleID 根据角色标识符和租户获取角色ID
@@ -154,14 +141,14 @@ func (r *DefaultTenantResolver) GetRoleID(roleIdentifier, tenantIdentifier strin
 		tenantID = 1 // 使用默认租户
 	}
 
-	// 从数据库查询
+	// 从数据库查询，使用角色名称而不是role_code
 	var role struct {
 		ID int64 `gorm:"column:id"`
 	}
 
 	err = r.db.Table("roles").
 		Select("id").
-		Where("role_code = ? AND tenant_id = ? AND deleted_at IS NULL",
+		Where("name = ? AND tenant_id = ? AND deleted_at IS NULL",
 			roleIdentifier, tenantID).
 		First(&role).Error
 
@@ -175,11 +162,11 @@ func (r *DefaultTenantResolver) GetRoleID(roleIdentifier, tenantIdentifier strin
 // GetRoleIdentifier 根据角色ID获取角色标识符
 func (r *DefaultTenantResolver) GetRoleIdentifier(roleID int64) (string, error) {
 	var role struct {
-		RoleCode string `gorm:"column:role_code"`
+		Name string `gorm:"column:name"`
 	}
 
 	err := r.db.Table("roles").
-		Select("role_code").
+		Select("name").
 		Where("id = ? AND deleted_at IS NULL", roleID).
 		First(&role).Error
 
@@ -187,13 +174,13 @@ func (r *DefaultTenantResolver) GetRoleIdentifier(roleID int64) (string, error) 
 		return "", err
 	}
 
-	return role.RoleCode, nil
+	return role.Name, nil
 }
 
 // GetPermissionID 根据权限标识符和租户获取权限ID
 func (r *DefaultTenantResolver) GetPermissionID(permissionIdentifier, tenantIdentifier string) (int64, error) {
-	// 如果是带前缀的格式 p{id}，直接解析
-	if strings.HasPrefix(permissionIdentifier, "p") {
+	// 如果是带前缀的格式 a{id}，直接解析
+	if strings.HasPrefix(permissionIdentifier, "a") {
 		if id, err := strconv.ParseInt(permissionIdentifier[1:], 10, 64); err == nil {
 			return id, nil
 		}
@@ -210,14 +197,14 @@ func (r *DefaultTenantResolver) GetPermissionID(permissionIdentifier, tenantIden
 		tenantID = 1 // 使用默认租户
 	}
 
-	// 从数据库查询
+	// 从数据库查询，使用权限名称而不是permission_code
 	var permission struct {
 		ID int64 `gorm:"column:id"`
 	}
 
 	err = r.db.Table("permissions").
 		Select("id").
-		Where("permission_code = ? AND tenant_id = ? AND deleted_at IS NULL",
+		Where("name = ? AND tenant_id = ? AND deleted_at IS NULL",
 			permissionIdentifier, tenantID).
 		First(&permission).Error
 
@@ -231,11 +218,11 @@ func (r *DefaultTenantResolver) GetPermissionID(permissionIdentifier, tenantIden
 // GetPermissionIdentifier 根据权限ID获取权限标识符
 func (r *DefaultTenantResolver) GetPermissionIdentifier(permissionID int64) (string, error) {
 	var permission struct {
-		PermissionCode string `gorm:"column:permission_code"`
+		Name string `gorm:"column:name"`
 	}
 
 	err := r.db.Table("permissions").
-		Select("permission_code").
+		Select("name").
 		Where("id = ? AND deleted_at IS NULL", permissionID).
 		First(&permission).Error
 
@@ -243,7 +230,7 @@ func (r *DefaultTenantResolver) GetPermissionIdentifier(permissionID int64) (str
 		return "", err
 	}
 
-	return permission.PermissionCode, nil
+	return permission.Name, nil
 }
 
 // Authz 定义了一个授权器，提供授权功能.

@@ -22,7 +22,6 @@ import (
 	"github.com/ashwinyue/one-auth/pkg/authz"
 	"github.com/ashwinyue/one-auth/pkg/store/where"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gorm.io/gorm"
 )
 
 // PermissionBiz 定义处理权限相关请求所需的方法.
@@ -115,64 +114,24 @@ func (b *permissionBiz) GetUserPermissions(ctx context.Context, rq *apiv1.GetUse
 
 // CheckPermissions 批量检查权限
 func (b *permissionBiz) CheckPermissions(ctx context.Context, rq *apiv1.CheckPermissionsRequest) (*apiv1.CheckPermissionsResponse, error) {
-	// 获取当前用户ID
+	// 获取当前用户
 	userID := contextx.UserID(ctx)
 	if userID == 0 {
-		return nil, errno.ErrUnauthenticated.WithMessage("user not found in context")
+		return nil, errno.ErrUnauthenticated.WithMessage("无法获取用户信息")
 	}
 
-	// 获取租户信息
-	tenantID := rq.TenantId
-	if tenantID == 0 {
-		contextTenantID := contextx.TenantID(ctx)
-		if contextTenantID != "" {
-			if tid, err := strconv.ParseInt(contextTenantID, 10, 64); err == nil {
-				tenantID = tid
-			}
-		}
-		if tenantID == 0 {
-			tenantID = 1 // 默认租户
-		}
-	}
+	results := make(map[int64]bool)
 
-	// 构建用户标识符和租户标识符
-	userIdentifier := fmt.Sprintf("u%d", userID)
-	tenantIdentifier := fmt.Sprintf("t%d", tenantID)
-
-	results := make(map[string]bool)
-
-	// 检查每个权限
-	for _, permissionCode := range rq.Permissions {
-		// 根据权限编码查找权限ID
-		permissionM, err := b.store.Permission().Get(ctx,
-			where.F("permission_code", permissionCode).F("tenant_id", tenantID))
-
+	// 遍历需要检查的权限ID
+	for _, permissionID := range rq.PermissionIds {
+		// 直接使用权限ID进行权限检查
+		hasPermission, err := b.authz.Enforce(fmt.Sprintf("u%d", userID), fmt.Sprintf("a%d", permissionID), "allow")
 		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				// 权限不存在，则没有权限
-				results[permissionCode] = false
-				continue
-			}
-
-			log.W(ctx).Errorw("Failed to get permission", "permission_code", permissionCode, "err", err)
-			results[permissionCode] = false
-			continue
+			log.W(ctx).Errorw("Failed to check permission", "user_id", userID, "permission_id", permissionID, "err", err)
+			results[permissionID] = false
+		} else {
+			results[permissionID] = hasPermission
 		}
-
-		// 构建权限标识符
-		permissionIdentifier := fmt.Sprintf("a%d", permissionM.ID)
-
-		// 使用Casbin检查权限
-		hasPermission, err := b.authz.Enforce(userIdentifier, permissionIdentifier, tenantIdentifier)
-		if err != nil {
-			log.W(ctx).Errorw("Failed to check permission",
-				"user_id", userIdentifier,
-				"permission", permissionCode,
-				"err", err)
-			hasPermission = false
-		}
-
-		results[permissionCode] = hasPermission
 	}
 
 	return &apiv1.CheckPermissionsResponse{
@@ -256,29 +215,28 @@ func (b *permissionBiz) CheckAPIAccess(ctx context.Context, rq *apiv1.CheckAPIAc
 	}, nil
 }
 
-// convertPermissionToAPI 将数据库模型转换为API响应模型
-func convertPermissionToAPI(permissionM *model.PermissionM) *apiv1.Permission {
-	description := ""
-	if permissionM.Description != nil {
-		description = *permissionM.Description
+// derefString 解引用字符串指针，如果为nil则返回空字符串
+func derefString(s *string) string {
+	if s == nil {
+		return ""
 	}
+	return *s
+}
 
+// convertPermissionToAPI 转换权限模型为API格式
+func convertPermissionToAPI(permissionM *model.PermissionM) *apiv1.Permission {
 	status := int32(0)
 	if permissionM.Status {
 		status = 1
 	}
 
-	// 注意：这里设置MenuId为0，因为Permission模型中没有直接的MenuID字段
-	// 如果需要MenuID，可以通过menu_permissions关联表查询
 	return &apiv1.Permission{
-		Id:             permissionM.ID,
-		TenantId:       permissionM.TenantID,
-		MenuId:         0, // 需要通过关联查询获取
-		PermissionCode: permissionM.PermissionCode,
-		Name:           permissionM.Name,
-		Description:    description,
-		Status:         status,
-		CreatedAt:      timestamppb.New(permissionM.CreatedAt),
-		UpdatedAt:      timestamppb.New(permissionM.UpdatedAt),
+		Id:          permissionM.ID,
+		TenantId:    permissionM.TenantID,
+		Name:        permissionM.Name,
+		Description: derefString(permissionM.Description),
+		Status:      status,
+		CreatedAt:   timestamppb.New(permissionM.CreatedAt),
+		UpdatedAt:   timestamppb.New(permissionM.UpdatedAt),
 	}
 }

@@ -106,12 +106,6 @@ func (v *Validator) ValidateAssignUserRolesRequest(ctx context.Context, rq *apiv
 // ValidateCreateRoleRequest 校验创建角色请求
 func (v *Validator) ValidateCreateRoleRequest(ctx context.Context, rq *apiv1.CreateRoleRequest) error {
 	rules := v.ValidateRoleRules()
-	rules["RoleCode"] = func(value any) error {
-		if value.(string) == "" {
-			return errno.ErrInvalidArgument.WithMessage("role_code cannot be empty")
-		}
-		return nil
-	}
 	rules["Name"] = func(value any) error {
 		if value.(string) == "" {
 			return errno.ErrInvalidArgument.WithMessage("name cannot be empty")

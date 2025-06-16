@@ -2,9 +2,10 @@ package model
 
 // MenuPermissionConfig 菜单权限配置结构
 type MenuPermissionConfig struct {
-	PermissionCode string `json:"permission_code"` // 权限编码
-	IsRequired     bool   `json:"is_required"`     // 是否为必需权限
-	AutoCreate     bool   `json:"auto_create"`     // 如果权限不存在是否自动创建
+	PermissionID   int64  `json:"permission_id,omitempty"`   // 权限ID（优先使用）
+	PermissionName string `json:"permission_name,omitempty"` // 权限名称（用于查找或创建）
+	IsRequired     bool   `json:"is_required"`               // 是否为必需权限
+	AutoCreate     bool   `json:"auto_create"`               // 如果权限不存在是否自动创建
 }
 
 // MenuPermissionMatrix 菜单权限矩阵
@@ -21,15 +22,15 @@ func (m *MenuPermissionMatrix) HasRequiredPermissions(userPermissions []string) 
 		return true // 如果没有必需权限，则允许访问
 	}
 
-	// 创建用户权限映射
+	// 创建用户权限映射（使用权限名称而不是编码）
 	userPermMap := make(map[string]bool)
 	for _, perm := range userPermissions {
 		userPermMap[perm] = true
 	}
 
-	// 检查是否拥有所有必需权限
+	// 检查是否拥有所有必需权限（基于权限名称）
 	for _, reqPerm := range m.RequiredPermissions {
-		if !userPermMap[reqPerm.PermissionCode] {
+		if !userPermMap[reqPerm.Name] {
 			return false
 		}
 	}

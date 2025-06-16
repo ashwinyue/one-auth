@@ -120,7 +120,7 @@ func (b *tenantBiz) SwitchTenant(ctx context.Context, rq *apiv1.SwitchTenantRequ
 	log.W(ctx).Infow("User switched tenant successfully",
 		"user_id", userID,
 		"tenant_id", rq.TenantId,
-		"tenant_code", tenant.TenantCode)
+		"tenant_name", tenant.Name)
 
 	return &apiv1.SwitchTenantResponse{Success: true}, nil
 }
@@ -177,9 +177,8 @@ func (b *tenantBiz) GetUserProfile(ctx context.Context, rq *apiv1.GetUserProfile
 		currentTenant = convertTenantToAPI(tenantM)
 	} else {
 		currentTenant = &apiv1.Tenant{
-			Id:         tenantID,
-			TenantCode: fmt.Sprintf("t%d", tenantID),
-			Name:       "Default Tenant",
+			Id:   tenantID,
+			Name: "Default Tenant",
 		}
 	}
 
@@ -287,13 +286,8 @@ func (b *tenantBiz) ListTenants(ctx context.Context, rq *apiv1.ListTenantsReques
 	}, nil
 }
 
-// convertTenantToAPI 将数据库模型转换为API响应模型
+// convertTenantToAPI 转换租户模型为API格式
 func convertTenantToAPI(tenantM *model.TenantM) *apiv1.Tenant {
-	description := ""
-	if tenantM.Description != nil {
-		description = *tenantM.Description
-	}
-
 	status := int32(0)
 	if tenantM.Status {
 		status = 1
@@ -301,83 +295,72 @@ func convertTenantToAPI(tenantM *model.TenantM) *apiv1.Tenant {
 
 	return &apiv1.Tenant{
 		Id:          tenantM.ID,
-		TenantCode:  tenantM.TenantCode,
 		Name:        tenantM.Name,
-		Description: description,
+		Description: derefString(tenantM.Description),
 		Status:      status,
 		CreatedAt:   timestamppb.New(tenantM.CreatedAt),
 		UpdatedAt:   timestamppb.New(tenantM.UpdatedAt),
 	}
 }
 
-// convertPermissionToAPI 将数据库模型转换为API响应模型
+// convertPermissionToAPI 转换权限模型为API格式
 func convertPermissionToAPI(permissionM *model.PermissionM) *apiv1.Permission {
-	description := ""
-	if permissionM.Description != nil {
-		description = *permissionM.Description
-	}
-
 	status := int32(0)
 	if permissionM.Status {
 		status = 1
 	}
 
-	// 注意：这里设置MenuId为0，因为Permission模型中没有直接的MenuID字段
-	// 如果需要MenuID，可以通过menu_permissions关联表查询
 	return &apiv1.Permission{
-		Id:             permissionM.ID,
-		TenantId:       permissionM.TenantID,
-		MenuId:         0, // 需要通过关联查询获取
-		PermissionCode: permissionM.PermissionCode,
-		Name:           permissionM.Name,
-		Description:    description,
-		Status:         status,
-		CreatedAt:      timestamppb.New(permissionM.CreatedAt),
-		UpdatedAt:      timestamppb.New(permissionM.UpdatedAt),
+		Id:          permissionM.ID,
+		TenantId:    permissionM.TenantID,
+		Name:        permissionM.Name,
+		Description: derefString(permissionM.Description),
+		Status:      status,
+		CreatedAt:   timestamppb.New(permissionM.CreatedAt),
+		UpdatedAt:   timestamppb.New(permissionM.UpdatedAt),
 	}
 }
 
-// convertMenuToAPI 将数据库模型转换为API响应模型
+// convertMenuToAPI 转换菜单模型为API格式
 func convertMenuToAPI(menuM *model.MenuM) *apiv1.Menu {
-	parentID := int64(0)
-	if menuM.ParentID != nil {
-		parentID = *menuM.ParentID
-	}
-
-	routePath := ""
-	if menuM.RoutePath != nil {
-		routePath = *menuM.RoutePath
-	}
-
-	component := ""
-	if menuM.Component != nil {
-		component = *menuM.Component
-	}
-
-	icon := ""
-	if menuM.Icon != nil {
-		icon = *menuM.Icon
-	}
-
 	status := int32(0)
 	if menuM.Status {
 		status = 1
 	}
 
-	return &apiv1.Menu{
+	apiMenu := &apiv1.Menu{
 		Id:        menuM.ID,
 		TenantId:  menuM.TenantID,
-		ParentId:  parentID,
-		MenuCode:  menuM.MenuCode,
 		Title:     menuM.Title,
 		MenuType:  menuM.MenuType,
-		RoutePath: routePath,
-		Component: component,
-		Icon:      icon,
-		SortOrder: int32(menuM.SortOrder),
+		SortOrder: menuM.SortOrder,
 		Visible:   menuM.Visible,
 		Status:    status,
 		CreatedAt: timestamppb.New(menuM.CreatedAt),
 		UpdatedAt: timestamppb.New(menuM.UpdatedAt),
 	}
+
+	// 处理可选字段
+	if menuM.ParentID != nil {
+		apiMenu.ParentId = *menuM.ParentID
+	}
+	if menuM.RoutePath != nil {
+		apiMenu.RoutePath = *menuM.RoutePath
+	}
+	if menuM.Component != nil {
+		apiMenu.Component = *menuM.Component
+	}
+	if menuM.Icon != nil {
+		apiMenu.Icon = *menuM.Icon
+	}
+
+	return apiMenu
+}
+
+// derefString 解引用字符串指针
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

@@ -199,10 +199,6 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		"tenants",
 		"TenantM",
 		gen.FieldIgnore("placeholder"),
-		gen.FieldGORMTag("tenant_code", func(tag field.GormTag) field.GormTag {
-			tag.Set("uniqueIndex", "idx_tenant_code")
-			return tag
-		}),
 		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
 			tag.Set("index", "")
 			return tag
@@ -214,8 +210,8 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		"roles",
 		"RoleM",
 		gen.FieldIgnore("placeholder"),
-		gen.FieldGORMTag("role_code", func(tag field.GormTag) field.GormTag {
-			tag.Set("uniqueIndex", "idx_role_code_tenant")
+		gen.FieldGORMTag("name", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_name_tenant")
 			return tag
 		}),
 		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
@@ -229,10 +225,6 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		"permissions",
 		"PermissionM",
 		gen.FieldIgnore("placeholder"),
-		gen.FieldGORMTag("permission_code", func(tag field.GormTag) field.GormTag {
-			tag.Set("uniqueIndex", "idx_permission_code_tenant")
-			return tag
-		}),
 		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
 			tag.Set("index", "")
 			return tag
@@ -244,10 +236,6 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		"menus",
 		"MenuM",
 		gen.FieldIgnore("placeholder"),
-		gen.FieldGORMTag("menu_code", func(tag field.GormTag) field.GormTag {
-			tag.Set("uniqueIndex", "idx_menu_code_tenant")
-			return tag
-		}),
 		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
 			tag.Set("index", "")
 			return tag

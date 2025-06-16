@@ -62,16 +62,8 @@ func (b *roleBiz) Create(ctx context.Context, rq *apiv1.CreateRoleRequest) (*api
 	}
 
 	// 参数验证
-	if rq.RoleCode == "" {
-		return nil, errno.ErrInvalidArgument.WithMessage("role_code cannot be empty")
-	}
 	if rq.Name == "" {
 		return nil, errno.ErrInvalidArgument.WithMessage("name cannot be empty")
-	}
-
-	// 角色编码格式校验
-	if !isValidRoleCode(rq.RoleCode) {
-		return nil, errno.ErrInvalidArgument.WithMessage("role_code format is invalid. Must be 3-50 characters, containing only letters, numbers, underscores, and hyphens")
 	}
 
 	// 角色名称格式校验
@@ -90,30 +82,30 @@ func (b *roleBiz) Create(ctx context.Context, rq *apiv1.CreateRoleRequest) (*api
 		return nil, errno.ErrInvalidArgument.WithMessage("invalid tenant_id format")
 	}
 
+	// 验证角色名称在租户内的唯一性
+	exists, err := b.store.Role().CheckNameExists(ctx, rq.Name, tenantIDInt)
+	if err != nil {
+		log.W(ctx).Errorw("Failed to check role name existence", "name", rq.Name, "err", err)
+		return nil, errno.ErrDBRead.WithMessage(err.Error())
+	}
+	if exists {
+		return nil, errno.ErrRoleNameExists.WithMessage(fmt.Sprintf("角色名称 %s 已存在", rq.Name))
+	}
+
 	// 使用数据库事务确保操作的原子性
 	var roleM *model.RoleM
 	err = b.store.TX(ctx, func(ctx context.Context) error {
-		// 检查角色编码是否已存在（在当前租户内）
-		exists, err := b.store.Role().IsRoleCodeExists(ctx, rq.RoleCode, tenantIDInt)
-		if err != nil {
-			return errno.ErrDBRead.WithMessage("Failed to check role code existence")
-		}
-		if exists {
-			return errno.ErrRoleAlreadyExists.WithMessage("role code already exists in current tenant")
-		}
-
 		// 创建角色
 		roleM = &model.RoleM{
 			TenantID:    tenantIDInt,
-			RoleCode:    rq.RoleCode,
 			Name:        rq.Name,
 			Description: &rq.Description,
 			Status:      true, // 默认启用
 		}
 
 		if err := b.store.Role().Create(ctx, roleM); err != nil {
-			log.W(ctx).Errorw("Failed to create role", "err", err)
-			return errno.ErrDBWrite.WithMessage("Failed to create role")
+			log.W(ctx).Errorw("Failed to create role", "name", rq.Name, "err", err)
+			return errno.ErrDBWrite.WithMessage(err.Error())
 		}
 
 		return nil
@@ -123,7 +115,7 @@ func (b *roleBiz) Create(ctx context.Context, rq *apiv1.CreateRoleRequest) (*api
 		return nil, err
 	}
 
-	log.W(ctx).Infow("Role created successfully", "role_id", roleM.ID, "role_code", roleM.RoleCode, "name", roleM.Name, "tenant_id", roleM.TenantID)
+	log.W(ctx).Infow("Role created successfully", "role_id", roleM.ID, "name", rq.Name, "tenant_id", roleM.TenantID)
 
 	// 转换为响应格式
 	return &apiv1.CreateRoleResponse{
@@ -172,7 +164,7 @@ func (b *roleBiz) Update(ctx context.Context, rq *apiv1.UpdateRoleRequest) (*api
 		return nil, errno.ErrDBWrite.WithMessage("Failed to update role")
 	}
 
-	log.W(ctx).Infow("Role updated successfully", "role_id", roleM.ID, "role_code", roleM.RoleCode, "name", roleM.Name)
+	log.W(ctx).Infow("Role updated successfully", "role_id", roleM.ID, "name", roleM.Name)
 
 	// 转换为响应格式
 	return &apiv1.UpdateRoleResponse{
@@ -323,8 +315,8 @@ func (b *roleBiz) checkDeleteRole(ctx context.Context, roleID int64) (bool, stri
 		return false, "", errno.ErrDBRead.WithMessage("Failed to get role")
 	}
 
-	// 检查是否是系统角色（假设role_code以system_开头的是系统角色）
-	if len(roleM.RoleCode) > 7 && roleM.RoleCode[:7] == "system_" {
+	// 检查是否是系统角色（假设角色名称以system_开头的是系统角色）
+	if len(roleM.Name) > 7 && roleM.Name[:7] == "system_" {
 		return false, "系统内置角色不能删除", nil
 	}
 
@@ -346,30 +338,12 @@ func convertRoleToAPI(roleM *model.RoleM) *apiv1.Role {
 	return &apiv1.Role{
 		Id:          roleM.ID,
 		TenantId:    roleM.TenantID,
-		RoleCode:    roleM.RoleCode,
 		Name:        roleM.Name,
 		Description: description,
 		Status:      status,
 		CreatedAt:   timestamppb.New(roleM.CreatedAt),
 		UpdatedAt:   timestamppb.New(roleM.UpdatedAt),
 	}
-}
-
-// isValidRoleCode 验证角色编码格式
-func isValidRoleCode(code string) bool {
-	if len(code) < 3 || len(code) > 50 {
-		return false
-	}
-	// 只能包含字母、数字、下划线、连字符
-	for _, char := range code {
-		if !((char >= 'a' && char <= 'z') ||
-			(char >= 'A' && char <= 'Z') ||
-			(char >= '0' && char <= '9') ||
-			char == '_' || char == '-') {
-			return false
-		}
-	}
-	return true
 }
 
 // isValidRoleName 验证角色名称格式

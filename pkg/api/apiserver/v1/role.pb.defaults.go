@@ -31,6 +31,12 @@ func (x *ListRolesRequest) Default() {
 func (x *ListRolesResponse) Default() {
 }
 
+func (x *GetRoleRequest) Default() {
+}
+
+func (x *GetRoleResponse) Default() {
+}
+
 func (x *GetRolePermissionsRequest) Default() {
 }
 

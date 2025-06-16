@@ -15,20 +15,18 @@ option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
 message CreateMenuWithPermissionsRequest {
     // tenant_id 表示租户ID
     int64 tenant_id = 1;
-    // menu_code 表示菜单编码
-    string menu_code = 2;
     // title 表示菜单标题
-    string title = 3;
+    string title = 2;
     // route_path 表示路由路径
-    string route_path = 4;
+    string route_path = 3;
     // icon 表示图标
-    string icon = 5;
+    string icon = 4;
     // parent_id 表示父菜单ID
-    int64 parent_id = 6;
+    int64 parent_id = 5;
     // actions 表示需要创建的权限操作列表
-    repeated string actions = 7;
+    repeated string actions = 6;
     // visible 表示是否可见
-    bool visible = 8;
+    bool visible = 7;
 }
 
 // CreateMenuWithPermissionsResponse 创建菜单并自动生成权限响应
@@ -43,14 +41,14 @@ message CreateMenuWithPermissionsResponse {
 
 // PreviewPermissionAssignmentRequest 预览权限分配请求
 message PreviewPermissionAssignmentRequest {
-    // permission_code 表示权限编码
-    string permission_code = 1;
+    // permission_name 表示权限名称
+    string permission_name = 1;
 }
 
 // PreviewPermissionAssignmentResponse 预览权限分配响应
 message PreviewPermissionAssignmentResponse {
-    // permission_code 表示权限编码
-    string permission_code = 1;
+    // permission_name 表示权限名称
+    string permission_name = 1;
     // will_assign_to_super_admin 表示是否会分配给超级管理员
     bool will_assign_to_super_admin = 2;
     // will_assign_to_admin 表示是否会分配给系统管理员
@@ -75,12 +73,10 @@ message SyncAdminPermissionsResponse {
 
 // SyncDetail 同步详情
 message SyncDetail {
-    // role_code 表示角色编码
-    string role_code = 1;
     // role_name 表示角色名称
-    string role_name = 2;
+    string role_name = 1;
     // assigned_permissions 表示分配的权限数量
-    int32 assigned_permissions = 3;
+    int32 assigned_permissions = 2;
 }
 
 // GetAutoAssignConfigRequest 获取自动分配配置请求
@@ -125,12 +121,10 @@ message UpdateAutoAssignConfigResponse {
 message RoleInfo {
     // id 表示角色ID
     int64 id = 1;
-    // role_code 表示角色编码
-    string role_code = 2;
     // name 表示角色名称
-    string name = 3;
+    string name = 2;
     // description 表示角色描述
-    string description = 4;
+    string description = 3;
 }
 
 // PermissionRule 权限分配规则
@@ -139,8 +133,8 @@ message PermissionRule {
     repeated string modules = 1;
     // actions 表示匹配的权限操作
     repeated string actions = 2;
-    // exclude_codes 表示排除的权限编码
-    repeated string exclude_codes = 3;
+    // exclude_names 表示排除的权限名称
+    repeated string exclude_names = 3;
     // include 表示是否包含该规则
     bool include = 4;
     // description 表示规则描述
@@ -167,12 +161,10 @@ message GetAdminMissingPermissionsResponse {
 message MissingPermission {
     // permission_id 表示权限ID
     int64 permission_id = 1;
-    // permission_code 表示权限编码
-    string permission_code = 2;
     // permission_name 表示权限名称
-    string permission_name = 3;
+    string permission_name = 2;
     // reason 表示缺失原因
-    string reason = 4;
+    string reason = 3;
     // should_assign 表示是否应该分配
-    bool should_assign = 5;
+    bool should_assign = 4;
 } 

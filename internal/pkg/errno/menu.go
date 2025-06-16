@@ -18,9 +18,6 @@ var (
 	// ErrMenuNotFound 表示菜单未找到.
 	ErrMenuNotFound = &errorsx.ErrorX{Code: http.StatusNotFound, Reason: "NotFound.MenuNotFound", Message: "Menu not found."}
 
-	// ErrMenuCodeExists 表示菜单编码已存在.
-	ErrMenuCodeExists = &errorsx.ErrorX{Code: http.StatusConflict, Reason: "Conflict.MenuCodeExists", Message: "Menu code already exists."}
-
 	// ErrMenuHasChildren 表示菜单有子菜单无法删除.
 	ErrMenuHasChildren = &errorsx.ErrorX{Code: http.StatusBadRequest, Reason: "BadRequest.MenuHasChildren", Message: "Menu has children and cannot be deleted."}
 

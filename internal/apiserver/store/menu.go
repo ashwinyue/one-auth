@@ -31,12 +31,6 @@ type MenuExpansion interface {
 	// 按租户获取菜单列表
 	GetMenusByTenant(ctx context.Context, tenantID int64, opts *where.Options) (int64, []*model.MenuM, error)
 
-	// 检查菜单代码是否已存在（在指定租户内）
-	IsMenuCodeExists(ctx context.Context, menuCode string, tenantID int64) (bool, error)
-
-	// 根据菜单代码获取菜单（在指定租户内）
-	GetByMenuCode(ctx context.Context, menuCode string, tenantID int64) (*model.MenuM, error)
-
 	// 获取根菜单列表（无父菜单的菜单）
 	GetRootMenus(ctx context.Context, tenantID int64, opts *where.Options) (int64, []*model.MenuM, error)
 
@@ -82,23 +76,6 @@ func (s *menuStore) GetMenusByTenant(ctx context.Context, tenantID int64, opts *
 	}
 	opts = opts.F("tenant_id", tenantID)
 	return s.List(ctx, opts)
-}
-
-// IsMenuCodeExists 检查菜单代码是否已存在
-func (s *menuStore) IsMenuCodeExists(ctx context.Context, menuCode string, tenantID int64) (bool, error) {
-	// 使用通用的Get方法检查是否存在
-	_, err := s.Get(ctx, where.F("menu_code", menuCode, "tenant_id", tenantID))
-	if err != nil {
-		// 如果是记录不存在错误，返回false
-		return false, nil
-	}
-	return true, nil
-}
-
-// GetByMenuCode 根据菜单代码获取菜单
-func (s *menuStore) GetByMenuCode(ctx context.Context, menuCode string, tenantID int64) (*model.MenuM, error) {
-	// 使用通用的Get方法
-	return s.Get(ctx, where.F("menu_code", menuCode, "tenant_id", tenantID))
 }
 
 // GetRootMenus 获取根菜单列表

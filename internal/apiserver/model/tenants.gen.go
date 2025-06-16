@@ -14,14 +14,13 @@ const TableNameTenantM = "tenants"
 
 // TenantM mapped from table <tenants>
 type TenantM struct {
-	ID          int64          `gorm:"column:id;primaryKey;autoIncrement:true;comment:租户主键ID" json:"id"`                        // 租户主键ID
-	TenantCode  string         `gorm:"column:tenant_code;not null;uniqueIndex:idx_tenant_code;comment:租户编码" json:"tenant_code"` // 租户编码
-	Name        string         `gorm:"column:name;not null;comment:租户名称" json:"name"`                                           // 租户名称
-	Description *string        `gorm:"column:description;comment:描述" json:"description"`                                        // 描述
-	Status      bool           `gorm:"column:status;not null;default:1;comment:状态：1-启用，0-禁用" json:"status"`                     // 状态：1-启用，0-禁用
-	CreatedAt   time.Time      `gorm:"column:created_at;not null;default:current_timestamp;comment:创建时间" json:"created_at"`     // 创建时间
-	UpdatedAt   time.Time      `gorm:"column:updated_at;not null;default:current_timestamp;comment:更新时间" json:"updated_at"`     // 更新时间
-	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index;comment:删除时间（软删除）" json:"deleted_at"`                             // 删除时间（软删除）
+	ID          int64          `gorm:"column:id;primaryKey;autoIncrement:true;comment:租户主键ID" json:"id"`                    // 租户主键ID
+	Name        string         `gorm:"column:name;not null;comment:租户名称" json:"name"`                                       // 租户名称
+	Description *string        `gorm:"column:description;comment:描述" json:"description"`                                    // 描述
+	Status      bool           `gorm:"column:status;not null;default:1;comment:状态：1-启用，0-禁用" json:"status"`                 // 状态：1-启用，0-禁用
+	CreatedAt   time.Time      `gorm:"column:created_at;not null;default:current_timestamp;comment:创建时间" json:"created_at"` // 创建时间
+	UpdatedAt   time.Time      `gorm:"column:updated_at;not null;default:current_timestamp;comment:更新时间" json:"updated_at"` // 更新时间
+	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index;comment:删除时间（软删除）" json:"deleted_at"`                         // 删除时间（软删除）
 }
 
 // TableName TenantM's table name

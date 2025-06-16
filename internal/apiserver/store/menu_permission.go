@@ -85,24 +85,35 @@ func (s *menuPermissionStore) ConfigureMenuPermissions(ctx context.Context, menu
 
 		// 2. 添加新的权限关联
 		for _, permConfig := range permissions {
-			// 查找权限ID
-			permission, err := s.ds.Permission().Get(ctx, where.F("permission_code", permConfig.PermissionCode))
+			var permission *model.PermissionM
+			var err error
+
+			// 根据配置查找权限（优先使用ID，然后使用名称）
+			if permConfig.PermissionID > 0 {
+				permission, err = s.ds.Permission().Get(ctx, where.F("id", permConfig.PermissionID))
+			} else if permConfig.PermissionName != "" {
+				permission, err = s.ds.Permission().Get(ctx, where.F("name", permConfig.PermissionName))
+			} else {
+				log.W(ctx).Errorw("Permission configuration missing required fields", "config", permConfig)
+				continue
+			}
+
 			if err != nil {
-				if permConfig.AutoCreate {
+				if permConfig.AutoCreate && permConfig.PermissionName != "" {
 					// 自动创建权限
 					newPerm := &model.PermissionM{
-						PermissionCode: permConfig.PermissionCode,
-						Name:           permConfig.PermissionCode,
-						ResourceType:   "menu",
-						Status:         true,
+						TenantID:     menuID, // 从菜单获取租户ID
+						Name:         permConfig.PermissionName,
+						ResourceType: "menu",
+						Status:       true,
 					}
 					if err := s.ds.DB(ctx).Create(newPerm).Error; err != nil {
-						log.W(ctx).Errorw("Failed to auto create permission", "code", permConfig.PermissionCode, "err", err)
+						log.W(ctx).Errorw("Failed to auto create permission", "name", permConfig.PermissionName, "err", err)
 						continue
 					}
 					permission = newPerm
 				} else {
-					log.W(ctx).Errorw("Permission not found", "code", permConfig.PermissionCode, "err", err)
+					log.W(ctx).Errorw("Permission not found", "id", permConfig.PermissionID, "name", permConfig.PermissionName, "err", err)
 					continue
 				}
 			}

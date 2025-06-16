@@ -76,7 +76,8 @@ func (b *menuPermissionBiz) ConfigureMenuPermissions(ctx context.Context, r *v1.
 	var permissions []model.MenuPermissionConfig
 	for _, perm := range r.Permissions {
 		permissions = append(permissions, model.MenuPermissionConfig{
-			PermissionCode: perm.PermissionCode,
+			PermissionID:   perm.PermissionId,
+			PermissionName: perm.PermissionName,
 			IsRequired:     perm.IsRequired,
 			AutoCreate:     perm.AutoCreate,
 		})
@@ -153,7 +154,6 @@ func (b *menuPermissionBiz) GetPermissionMenus(ctx context.Context, r *v1.GetPer
 
 		menuWithPerms := &v1.MenuWithPermissions{
 			MenuId:              menu.ID,
-			MenuCode:            menu.MenuCode,
 			Title:               menu.Title,
 			Permissions:         convertPermissionsToAPI(permissions),
 			RequiredPermissions: convertPermissionsToAPI(requiredPerms),
@@ -175,7 +175,7 @@ func (b *menuPermissionBiz) GetUserMenuPermissions(ctx context.Context, r *v1.Ge
 		if contextUserID := contextx.UserID(ctx); contextUserID != 0 {
 			userID = fmt.Sprintf("u%d", contextUserID)
 		} else {
-			userID = "current_user"
+			return nil, errno.ErrUnauthenticated.WithMessage("无法获取用户信息")
 		}
 	}
 
@@ -197,7 +197,6 @@ func (b *menuPermissionBiz) GetUserMenuPermissions(ctx context.Context, r *v1.Ge
 	for _, menu := range accessibleMenus {
 		apiMenu := &v1.MenuWithPermissions{
 			MenuId:      menu.ID,
-			MenuCode:    menu.MenuCode,
 			Title:       menu.Title,
 			Permissions: convertPermissionsToAPI(menu.Permissions),
 		}
@@ -232,46 +231,57 @@ func (b *menuPermissionBiz) ValidateMenuAccess(ctx context.Context, r *v1.Valida
 		if contextUserID := contextx.UserID(ctx); contextUserID != 0 {
 			userID = fmt.Sprintf("u%d", contextUserID)
 		} else {
-			userID = "current_user"
+			return nil, errno.ErrUnauthenticated.WithMessage("无法获取用户信息")
 		}
 	}
 
-	// 获取菜单的必需权限
+	// 获取菜单必需权限
 	requiredPermissions, err := b.ds.MenuPermission().GetMenuRequiredPermissions(ctx, r.MenuId)
 	if err != nil {
 		log.W(ctx).Errorw("Failed to get menu required permissions", "menu_id", r.MenuId, "err", err)
 		return nil, errno.ErrDBRead.WithMessage(err.Error())
 	}
 
-	// 从authz获取用户权限
-	userPermissions := []string{} // 简化实现，实际应该从authz获取
+	// 获取用户权限（这里简化实现，实际应该通过authz获取）
+	userPermissions := []string{} // 从authz获取用户权限
 
-	// 检查用户权限
+	// 检查权限
 	var missingPermissions []string
-	permissionMap := make(map[string]bool)
-	for _, perm := range userPermissions {
-		permissionMap[perm] = true
-	}
-
 	for _, reqPerm := range requiredPermissions {
-		if !permissionMap[reqPerm.PermissionCode] {
-			missingPermissions = append(missingPermissions, reqPerm.PermissionCode)
+		if !contains(userPermissions, reqPerm.Name) {
+			missingPermissions = append(missingPermissions, reqPerm.Name)
 		}
 	}
 
 	hasAccess := len(missingPermissions) == 0
 
-	message := "有权限访问"
+	// 获取可执行操作（基于用户权限）
+	availableActions := []string{}
+	if hasAccess {
+		availableActions = append(availableActions, "view", "access")
+	}
+
+	message := "权限验证成功"
 	if !hasAccess {
-		message = fmt.Sprintf("缺少权限: %s", strings.Join(missingPermissions, ", "))
+		message = fmt.Sprintf("缺少必需权限: %s", strings.Join(missingPermissions, ", "))
 	}
 
 	return &v1.ValidateMenuAccessResponse{
 		HasAccess:          hasAccess,
 		MissingPermissions: missingPermissions,
-		AvailableActions:   []string{"view", "access"},
+		AvailableActions:   availableActions,
 		Message:            message,
 	}, nil
+}
+
+// contains 检查字符串切片是否包含指定值
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
 
 // BatchConfigureMenuPermissions 批量配置菜单权限
@@ -285,7 +295,8 @@ func (b *menuPermissionBiz) BatchConfigureMenuPermissions(ctx context.Context, r
 		var permissions []model.MenuPermissionConfig
 		for _, perm := range config.Permissions {
 			permissions = append(permissions, model.MenuPermissionConfig{
-				PermissionCode: perm.PermissionCode,
+				PermissionID:   perm.PermissionId,
+				PermissionName: perm.PermissionName,
 				IsRequired:     perm.IsRequired,
 				AutoCreate:     perm.AutoCreate,
 			})
@@ -381,20 +392,13 @@ func (b *menuPermissionBiz) CheckMenuPermission(ctx context.Context, userID stri
 
 // convertPermissionsToAPI 转换权限模型为API格式
 func convertPermissionsToAPI(permissions []*model.PermissionNewM) []*v1.Permission {
-	var apiPermissions []*v1.Permission
+	var result []*v1.Permission
 	for _, perm := range permissions {
-		apiPerm := &v1.Permission{
-			Id:             perm.ID,
-			TenantId:       perm.TenantID,
-			PermissionCode: perm.PermissionCode,
-			Name:           perm.Name,
-		}
-
-		if perm.Description != nil {
-			apiPerm.Description = *perm.Description
-		}
-
-		apiPermissions = append(apiPermissions, apiPerm)
+		result = append(result, &v1.Permission{
+			Id:       perm.ID,
+			TenantId: perm.TenantID,
+			Name:     perm.Name,
+		})
 	}
-	return apiPermissions
+	return result
 }

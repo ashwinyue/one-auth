@@ -14,13 +14,6 @@ import (
 
 // 角色相关错误定义
 var (
-	// ErrRoleAlreadyExists 表示角色已存在.
-	ErrRoleAlreadyExists = &errorsx.ErrorX{
-		Code:    http.StatusConflict,
-		Reason:  "Conflict.RoleAlreadyExists",
-		Message: "Role already exists.",
-	}
-
 	// ErrRoleNotFound 表示角色未找到.
 	ErrRoleNotFound = &errorsx.ErrorX{
 		Code:    http.StatusNotFound,
@@ -28,24 +21,73 @@ var (
 		Message: "Role not found.",
 	}
 
-	// ErrRoleCannotDelete 表示角色不能删除.
-	ErrRoleCannotDelete = &errorsx.ErrorX{
-		Code:    http.StatusBadRequest,
-		Reason:  "BadRequest.RoleCannotDelete",
-		Message: "Role cannot be deleted.",
+	// ErrRoleNameExists 表示角色名称已存在.
+	ErrRoleNameExists = &errorsx.ErrorX{
+		Code:    http.StatusConflict,
+		Reason:  "Conflict.RoleNameExists",
+		Message: "Role name already exists.",
 	}
 
-	// ErrRoleInUse 表示角色正在使用中.
-	ErrRoleInUse = &errorsx.ErrorX{
-		Code:    http.StatusBadRequest,
-		Reason:  "BadRequest.RoleInUse",
-		Message: "Role is in use and cannot be modified.",
+	// ErrRoleAlreadyExists 表示角色已存在.
+	ErrRoleAlreadyExists = &errorsx.ErrorX{
+		Code:    http.StatusConflict,
+		Reason:  "Conflict.RoleAlreadyExists",
+		Message: "Role already exists.",
 	}
 
-	// ErrInvalidRoleCode 表示角色编码无效.
-	ErrInvalidRoleCode = &errorsx.ErrorX{
+	// ErrRoleDeleteWithUsers 表示角色有关联用户无法删除.
+	ErrRoleDeleteWithUsers = &errorsx.ErrorX{
 		Code:    http.StatusBadRequest,
-		Reason:  "BadRequest.InvalidRoleCode",
-		Message: "Invalid role code.",
+		Reason:  "BadRequest.RoleDeleteWithUsers",
+		Message: "Role has associated users and cannot be deleted.",
+	}
+
+	// ErrRolePermissionConfiguration 表示角色权限配置失败.
+	ErrRolePermissionConfiguration = &errorsx.ErrorX{
+		Code:    http.StatusInternalServerError,
+		Reason:  "InternalError.RolePermissionConfiguration",
+		Message: "Role permission configuration failed.",
+	}
+
+	// ErrRolePermissionNotFound 表示角色权限关联未找到.
+	ErrRolePermissionNotFound = &errorsx.ErrorX{
+		Code:    http.StatusNotFound,
+		Reason:  "NotFound.RolePermissionNotFound",
+		Message: "Role permission association not found.",
+	}
+
+	// ErrRolePermissionExists 表示角色权限关联已存在.
+	ErrRolePermissionExists = &errorsx.ErrorX{
+		Code:    http.StatusConflict,
+		Reason:  "Conflict.RolePermissionExists",
+		Message: "Role permission association already exists.",
+	}
+
+	// ErrRoleAccessDenied 表示角色访问被拒绝.
+	ErrRoleAccessDenied = &errorsx.ErrorX{
+		Code:    http.StatusForbidden,
+		Reason:  "Forbidden.RoleAccessDenied",
+		Message: "Role access denied.",
+	}
+
+	// ErrRoleInvalidStatus 表示角色状态无效.
+	ErrRoleInvalidStatus = &errorsx.ErrorX{
+		Code:    http.StatusBadRequest,
+		Reason:  "BadRequest.RoleInvalidStatus",
+		Message: "Invalid role status.",
+	}
+
+	// ErrRoleBatchOperationFailed 表示角色批量操作失败.
+	ErrRoleBatchOperationFailed = &errorsx.ErrorX{
+		Code:    http.StatusInternalServerError,
+		Reason:  "InternalError.RoleBatchOperationFailed",
+		Message: "Role batch operation failed.",
+	}
+
+	// ErrRoleHierarchyLoop 表示角色层级循环引用.
+	ErrRoleHierarchyLoop = &errorsx.ErrorX{
+		Code:    http.StatusBadRequest,
+		Reason:  "BadRequest.RoleHierarchyLoop",
+		Message: "Role hierarchy contains circular reference.",
 	}
 )

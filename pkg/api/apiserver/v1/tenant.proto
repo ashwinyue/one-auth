@@ -19,18 +19,16 @@ option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
 message Tenant {
     // id 表示租户主键ID
     int64 id = 1;
-    // tenant_code 表示租户编码
-    string tenant_code = 2;
     // name 表示租户名称
-    string name = 3;
+    string name = 2;
     // description 表示租户描述
-    string description = 4;
+    string description = 3;
     // status 表示租户状态
-    int32 status = 5;
+    int32 status = 4;
     // created_at 表示创建时间
-    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp created_at = 5;
     // updated_at 表示更新时间
-    google.protobuf.Timestamp updated_at = 7;
+    google.protobuf.Timestamp updated_at = 6;
 }
 
 // UserProfile 表示用户完整信息
