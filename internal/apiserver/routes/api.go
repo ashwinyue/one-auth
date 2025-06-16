@@ -25,34 +25,6 @@ func InstallUserRoutes(v1 *gin.RouterGroup, h *handler.Handler, authMiddlewares 
 		userGroup.DELETE(":userID", h.DeleteUser)                  // 删除用户
 		userGroup.GET(":userID", h.GetUser)                        // 查询用户详情
 		userGroup.GET("", h.ListUser)                              // 查询用户列表
-
-		// 用户角色管理
-		userGroup.GET("/:userID/roles", h.GetUserRoles) // 获取用户角色
-		userGroup.POST("/roles", h.AssignUserRoles)     // 分配用户角色
-	}
-
-	// 当前用户相关路由
-	currentUserGroup := v1.Group("/user", authMiddlewares...)
-	{
-		// 租户相关
-		currentUserGroup.GET("/tenants", h.GetUserTenants)      // 获取用户租户列表
-		currentUserGroup.POST("/switch-tenant", h.SwitchTenant) // 切换租户
-		currentUserGroup.GET("/profile", h.GetUserProfile)      // 获取用户完整信息
-
-		// 权限相关
-		currentUserGroup.GET("/permissions", h.GetUserPermissions) // 获取用户权限
-
-		// 菜单相关
-		currentUserGroup.GET("/menus", h.GetUserMenus) // 获取用户菜单
-	}
-}
-
-// InstallTenantRoutes 安装租户相关的路由
-func InstallTenantRoutes(v1 *gin.RouterGroup, h *handler.Handler, authMiddlewares ...gin.HandlerFunc) {
-	// 租户管理路由
-	tenantGroup := v1.Group("/tenants", authMiddlewares...)
-	{
-		tenantGroup.GET("", h.ListTenants) // 获取租户列表
 	}
 }
 
@@ -61,31 +33,10 @@ func InstallRoleRoutes(v1 *gin.RouterGroup, h *handler.Handler, authMiddlewares 
 	// 角色管理路由
 	roleGroup := v1.Group("/roles", authMiddlewares...)
 	{
-		roleGroup.GET("", h.ListRoles)                             // 获取角色列表
-		roleGroup.POST("", h.CreateRole)                           // 创建角色
-		roleGroup.PUT("/:role_id", h.UpdateRole)                   // 更新角色
-		roleGroup.DELETE("/:role_id", h.DeleteRole)                // 删除角色
-		roleGroup.GET("/:role_id/check-delete", h.CheckDeleteRole) // 检查角色是否可删除
-
-		// 角色权限管理
-		roleGroup.GET("/:role_id/permissions", h.GetRolePermissions) // 获取角色权限
-		roleGroup.POST("/permissions", h.AssignRolePermissions)      // 分配角色权限
-
-		// 角色菜单管理
-		roleGroup.GET("/:role_id/menus", h.GetRoleMenus) // 获取角色菜单
-		roleGroup.PUT("/menus", h.UpdateRoleMenus)       // 更新角色菜单
-	}
-
-	// 当前用户角色相关路由
-	currentUserRoleGroup := v1.Group("/user/roles", authMiddlewares...)
-	{
-		currentUserRoleGroup.GET("", h.GetRolesByUser) // 获取当前用户角色
-	}
-
-	// 系统管理路由
-	systemGroup := v1.Group("/system", authMiddlewares...)
-	{
-		systemGroup.POST("/refresh-privilege", h.RefreshPrivilegeData) // 刷新权限数据
+		roleGroup.GET("", h.ListRoles)             // 获取角色列表
+		roleGroup.POST("", h.CreateRole)           // 创建角色
+		roleGroup.PUT("/:roleID", h.UpdateRole)    // 更新角色
+		roleGroup.DELETE("/:roleID", h.DeleteRole) // 删除角色
 	}
 }
 
@@ -97,6 +48,12 @@ func InstallPermissionRoutes(v1 *gin.RouterGroup, h *handler.Handler, authMiddle
 		permissionGroup.POST("/check", h.CheckPermissions) // 批量检查权限
 	}
 
+	// 当前用户权限相关路由
+	currentUserGroup := v1.Group("/user", authMiddlewares...)
+	{
+		currentUserGroup.GET("/permissions", h.GetUserPermissions) // 获取用户权限
+	}
+
 	// API访问检查路由
 	apiGroup := v1.Group("/api", authMiddlewares...)
 	{
@@ -106,11 +63,7 @@ func InstallPermissionRoutes(v1 *gin.RouterGroup, h *handler.Handler, authMiddle
 
 // InstallMenuRoutes 安装菜单相关的路由
 func InstallMenuRoutes(v1 *gin.RouterGroup, h *handler.Handler, authMiddlewares ...gin.HandlerFunc) {
-	// 菜单管理路由
-	menuGroup := v1.Group("/menus", authMiddlewares...)
-	{
-		menuGroup.GET("", h.ListMenus) // 获取菜单列表
-	}
+	RegisterMenuRoutes(v1, h, authMiddlewares...)
 }
 
 // InstallPostRoutes 安装博客相关的路由

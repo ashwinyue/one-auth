@@ -17,7 +17,6 @@ import (
 	"github.com/ashwinyue/one-auth/internal/apiserver/cache"
 	"github.com/ashwinyue/one-auth/internal/apiserver/pkg/validation"
 	"github.com/ashwinyue/one-auth/internal/apiserver/store"
-	ginmw "github.com/ashwinyue/one-auth/internal/pkg/middleware/gin"
 	"github.com/ashwinyue/one-auth/internal/pkg/server"
 )
 
@@ -29,10 +28,6 @@ func InitializeWebServer(*Config) (server.Server, error) {
 		ProvideDB,    // 提供数据库实例
 		ProvideRedis, // 提供Redis实例
 		validation.ProviderSet,
-		wire.NewSet(
-			wire.Struct(new(UserRetriever), "*"),
-			wire.Bind(new(ginmw.UserRetriever), new(*UserRetriever)),
-		),
 		authz.ProviderSet,
 	)
 	return nil, nil

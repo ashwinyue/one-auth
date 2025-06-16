@@ -25,6 +25,30 @@ var (
 func (x *Menu) Default() {
 }
 
+func (x *CreateMenuRequest) Default() {
+}
+
+func (x *CreateMenuResponse) Default() {
+}
+
+func (x *UpdateMenuRequest) Default() {
+}
+
+func (x *UpdateMenuResponse) Default() {
+}
+
+func (x *DeleteMenuRequest) Default() {
+}
+
+func (x *DeleteMenuResponse) Default() {
+}
+
+func (x *GetMenuRequest) Default() {
+}
+
+func (x *GetMenuResponse) Default() {
+}
+
 func (x *GetUserMenusRequest) Default() {
 }
 
@@ -35,4 +59,31 @@ func (x *ListMenusRequest) Default() {
 }
 
 func (x *ListMenusResponse) Default() {
+}
+
+func (x *GetMenuTreeRequest) Default() {
+}
+
+func (x *GetMenuTreeResponse) Default() {
+}
+
+func (x *MenuSortItem) Default() {
+}
+
+func (x *UpdateMenuSortRequest) Default() {
+}
+
+func (x *UpdateMenuSortResponse) Default() {
+}
+
+func (x *CopyMenuRequest) Default() {
+}
+
+func (x *CopyMenuResponse) Default() {
+}
+
+func (x *MoveMenuRequest) Default() {
+}
+
+func (x *MoveMenuResponse) Default() {
 }

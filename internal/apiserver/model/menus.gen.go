@@ -14,24 +14,22 @@ const TableNameMenuM = "menus"
 
 // MenuM mapped from table <menus>
 type MenuM struct {
-	ID          int64          `gorm:"column:id;primaryKey;autoIncrement:true;comment:菜单主键ID" json:"id"`                         // 菜单主键ID
-	TenantID    int64          `gorm:"column:tenant_id;not null;comment:租户ID" json:"tenant_id"`                                  // 租户ID
-	ParentID    *int64         `gorm:"column:parent_id;comment:父菜单ID" json:"parent_id"`                                          // 父菜单ID
-	MenuCode    string         `gorm:"column:menu_code;not null;uniqueIndex:idx_menu_code_tenant;comment:菜单编码" json:"menu_code"` // 菜单编码
-	Title       string         `gorm:"column:title;not null;comment:菜单标题" json:"title"`                                          // 菜单标题
-	RoutePath   *string        `gorm:"column:route_path;comment:前端路由路径" json:"route_path"`                                       // 前端路由路径
-	APIPath     *string        `gorm:"column:api_path;comment:API访问路径（支持通配符）" json:"api_path"`                                   // API访问路径（支持通配符）
-	HTTPMethods *string        `gorm:"column:http_methods;default:GET;comment:支持的HTTP方法（逗号分隔）" json:"http_methods"`              // 支持的HTTP方法（逗号分隔）
-	RequireAuth bool           `gorm:"column:require_auth;not null;default:1;comment:是否需要认证" json:"require_auth"`                // 是否需要认证
-	Component   *string        `gorm:"column:component;comment:前端组件路径" json:"component"`                                         // 前端组件路径
-	Icon        *string        `gorm:"column:icon;comment:图标" json:"icon"`                                                       // 图标
-	SortOrder   int32          `gorm:"column:sort_order;not null;comment:排序" json:"sort_order"`                                  // 排序
-	MenuType    bool           `gorm:"column:menu_type;not null;default:1;comment:菜单类型：1-菜单，2-按钮，3-接口" json:"menu_type"`         // 菜单类型：1-菜单，2-按钮，3-接口
-	Visible     bool           `gorm:"column:visible;not null;default:1;comment:是否可见" json:"visible"`                            // 是否可见
-	Status      bool           `gorm:"column:status;not null;default:1;comment:状态：1-启用，0-禁用" json:"status"`                      // 状态：1-启用，0-禁用
-	CreatedAt   time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`      // 创建时间
-	UpdatedAt   time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`      // 更新时间
-	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index;comment:删除时间（软删除）" json:"deleted_at"`                              // 删除时间（软删除）
+	ID        int64          `gorm:"column:id;primaryKey;autoIncrement:true;comment:菜单主键ID" json:"id"`                         // 菜单主键ID
+	TenantID  int64          `gorm:"column:tenant_id;not null;comment:租户ID" json:"tenant_id"`                                  // 租户ID
+	ParentID  *int64         `gorm:"column:parent_id;comment:父菜单ID" json:"parent_id"`                                          // 父菜单ID
+	MenuCode  string         `gorm:"column:menu_code;not null;uniqueIndex:idx_menu_code_tenant;comment:菜单编码" json:"menu_code"` // 菜单编码
+	Title     string         `gorm:"column:title;not null;comment:菜单标题" json:"title"`                                          // 菜单标题
+	MenuType  int32          `gorm:"column:menu_type;not null;default:1;comment:菜单类型：1-目录，2-菜单，3-按钮" json:"menu_type"`         // 菜单类型：1-目录，2-菜单，3-按钮
+	RoutePath *string        `gorm:"column:route_path;comment:前端路由路径" json:"route_path"`                                       // 前端路由路径
+	Component *string        `gorm:"column:component;comment:前端组件路径" json:"component"`                                         // 前端组件路径
+	Icon      *string        `gorm:"column:icon;comment:图标" json:"icon"`                                                       // 图标
+	SortOrder int32          `gorm:"column:sort_order;not null;comment:排序" json:"sort_order"`                                  // 排序
+	Visible   bool           `gorm:"column:visible;not null;default:1;comment:是否可见" json:"visible"`                            // 是否可见
+	Status    bool           `gorm:"column:status;not null;default:1;comment:状态：1-启用，0-禁用" json:"status"`                      // 状态：1-启用，0-禁用
+	Remark    *string        `gorm:"column:remark;comment:备注" json:"remark"`                                                   // 备注
+	CreatedAt time.Time      `gorm:"column:created_at;not null;default:current_timestamp;comment:创建时间" json:"created_at"`      // 创建时间
+	UpdatedAt time.Time      `gorm:"column:updated_at;not null;default:current_timestamp;comment:更新时间" json:"updated_at"`      // 更新时间
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index;comment:删除时间（软删除）" json:"deleted_at"`                              // 删除时间（软删除）
 }
 
 // TableName MenuM's table name

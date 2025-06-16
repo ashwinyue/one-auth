@@ -9,8 +9,6 @@ syntax = "proto3";
 
 package v1;
 
-import "google/protobuf/timestamp.proto";
-
 option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
 
 // CreateMenuWithPermissionsRequest 创建菜单并自动生成权限请求

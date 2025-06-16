@@ -91,3 +91,21 @@ func (x *ListUserRequest) Default() {
 
 func (x *ListUserResponse) Default() {
 }
+
+func (x *RegisterRequest) Default() {
+}
+
+func (x *RegisterResponse) Default() {
+}
+
+func (x *BindPhoneRequest) Default() {
+}
+
+func (x *BindPhoneResponse) Default() {
+}
+
+func (x *CheckPhoneAvailableRequest) Default() {
+}
+
+func (x *CheckPhoneAvailableResponse) Default() {
+}

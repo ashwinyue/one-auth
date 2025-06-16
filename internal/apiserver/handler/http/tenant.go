@@ -7,26 +7,27 @@
 package http
 
 import (
-	"github.com/ashwinyue/one-auth/pkg/core"
 	"github.com/gin-gonic/gin"
+
+	"github.com/ashwinyue/one-auth/pkg/core"
 )
 
 // GetUserTenants 获取用户所属的租户列表
 func (h *Handler) GetUserTenants(c *gin.Context) {
-	core.HandleJSONRequest(c, h.biz.TenantV1().GetUserTenants, h.val.ValidateGetUserTenantsRequest)
+	core.HandleQueryRequest(c, h.biz.TenantV1().GetUserTenants)
 }
 
 // SwitchTenant 切换用户当前工作租户
 func (h *Handler) SwitchTenant(c *gin.Context) {
-	core.HandleJSONRequest(c, h.biz.TenantV1().SwitchTenant, h.val.ValidateSwitchTenantRequest)
+	core.HandleJSONRequest(c, h.biz.TenantV1().SwitchTenant)
 }
 
 // GetUserProfile 获取用户完整信息（包含当前租户、角色、权限）
 func (h *Handler) GetUserProfile(c *gin.Context) {
-	core.HandleQueryRequest(c, h.biz.TenantV1().GetUserProfile, h.val.ValidateGetUserProfileRequest)
+	core.HandleQueryRequest(c, h.biz.TenantV1().GetUserProfile)
 }
 
-// ListTenants 获取租户列表（管理员用）
+// ListTenants 获取租户列表
 func (h *Handler) ListTenants(c *gin.Context) {
-	core.HandleQueryRequest(c, h.biz.TenantV1().ListTenants, h.val.ValidateListTenantsRequest)
+	core.HandleQueryRequest(c, h.biz.TenantV1().ListTenants)
 }

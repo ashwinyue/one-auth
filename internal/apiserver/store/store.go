@@ -37,6 +37,7 @@ type IStore interface {
 	TX(ctx context.Context, fn func(ctx context.Context) error) error
 
 	User() UserStore
+	UserStatus() UserStatusStore
 	Post() PostStore
 	// ConcretePost ConcretePosts 是一个示例 store 实现，用来演示在 Go 中如何直接与 DB 交互.
 	ConcretePost() ConcretePostStore
@@ -106,6 +107,11 @@ func (store *datastore) TX(ctx context.Context, fn func(ctx context.Context) err
 // User 返回一个实现了 UserStore 接口的实例.
 func (store *datastore) User() UserStore {
 	return newUserStore(store)
+}
+
+// UserStatus 返回一个实现了 UserStatusStore 接口的实例.
+func (store *datastore) UserStatus() UserStatusStore {
+	return newUserStatusStore(store)
 }
 
 // Post 返回一个实现了 PostStore 接口的实例.

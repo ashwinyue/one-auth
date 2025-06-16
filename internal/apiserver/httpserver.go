@@ -59,22 +59,22 @@ func (c *ServerConfig) InstallRESTAPI(engine *gin.Engine) {
 	engine.POST("/login", h.Login)
 	engine.POST("/send-verify-code", h.SendVerifyCode) // 发送验证码不需要认证
 	// 注意：认证中间件要在 handler.RefreshToken 之前加载
-	engine.PUT("/refresh-token", mw.AuthnMiddleware(c.retriever), h.RefreshToken)
-	engine.POST("/logout", mw.AuthnMiddleware(c.retriever), h.Logout) // 登出需要认证
+	engine.PUT("/refresh-token", mw.AuthnMiddleware(c.store.User()), h.RefreshToken)
+	engine.POST("/logout", mw.AuthnMiddleware(c.store.User()), h.Logout) // 登出需要认证
 
 	// 认证和授权中间件
-	authMiddlewares := []gin.HandlerFunc{mw.AuthnMiddleware(c.retriever), mw.AuthzMiddleware(c.authz)}
+	authMiddlewares := []gin.HandlerFunc{mw.AuthnMiddleware(c.store.User()), mw.AuthzMiddleware(c.authz)}
 
 	// 注册 v1 版本 API 路由分组
 	v1 := engine.Group("/v1")
 
 	// 按模块安装路由
 	routes.InstallUserRoutes(v1, h, authMiddlewares...)
-	routes.InstallTenantRoutes(v1, h, authMiddlewares...)
+	routes.InstallPostRoutes(v1, h, authMiddlewares...)
 	routes.InstallRoleRoutes(v1, h, authMiddlewares...)
 	routes.InstallPermissionRoutes(v1, h, authMiddlewares...)
+	routes.InstallTenantRoutes(v1, h, authMiddlewares...)
 	routes.InstallMenuRoutes(v1, h, authMiddlewares...)
-	routes.InstallPostRoutes(v1, h, authMiddlewares...)
 }
 
 // InstallGenericAPI 注册业务无关的路由，例如 pprof、404 处理等.

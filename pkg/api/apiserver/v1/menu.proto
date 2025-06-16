@@ -53,6 +53,106 @@ message Menu {
     google.protobuf.Timestamp updated_at = 18;
 }
 
+// CreateMenuRequest 表示创建菜单请求
+message CreateMenuRequest {
+    // tenant_id 表示租户ID
+    int64 tenant_id = 1;
+    // parent_id 表示父菜单ID
+    int64 parent_id = 2;
+    // menu_code 表示菜单编码
+    string menu_code = 3;
+    // title 表示菜单标题
+    string title = 4;
+    // route_path 表示前端路由路径
+    string route_path = 5;
+    // component 表示前端组件路径
+    string component = 6;
+    // icon 表示图标
+    string icon = 7;
+    // sort_order 表示排序
+    int32 sort_order = 8;
+    // menu_type 表示菜单类型
+    int32 menu_type = 9;
+    // visible 表示是否可见
+    bool visible = 10;
+    // status 表示状态
+    bool status = 11;
+    // remark 表示备注
+    string remark = 12;
+}
+
+// CreateMenuResponse 表示创建菜单响应
+message CreateMenuResponse {
+    // menu_id 表示创建的菜单ID
+    int64 menu_id = 1;
+    // message 表示响应消息
+    string message = 2;
+}
+
+// UpdateMenuRequest 表示更新菜单请求
+message UpdateMenuRequest {
+    // menu_id 表示菜单ID
+    int64 menu_id = 1;
+    // parent_id 表示父菜单ID（可选）
+    optional int64 parent_id = 2;
+    // menu_code 表示菜单编码（可选）
+    string menu_code = 3;
+    // title 表示菜单标题（可选）
+    string title = 4;
+    // route_path 表示前端路由路径（可选）
+    optional string route_path = 5;
+    // component 表示前端组件路径（可选）
+    optional string component = 6;
+    // icon 表示图标（可选）
+    optional string icon = 7;
+    // sort_order 表示排序（可选）
+    optional int32 sort_order = 8;
+    // menu_type 表示菜单类型（可选）
+    optional int32 menu_type = 9;
+    // visible 表示是否可见（可选）
+    optional bool visible = 10;
+    // status 表示状态（可选）
+    optional bool status = 11;
+    // remark 表示备注（可选）
+    optional string remark = 12;
+}
+
+// UpdateMenuResponse 表示更新菜单响应
+message UpdateMenuResponse {
+    // success 表示是否成功
+    bool success = 1;
+    // message 表示响应消息
+    string message = 2;
+}
+
+// DeleteMenuRequest 表示删除菜单请求
+message DeleteMenuRequest {
+    // menu_id 表示菜单ID
+    int64 menu_id = 1;
+    // force 表示是否强制删除（包括子菜单）
+    bool force = 2;
+}
+
+// DeleteMenuResponse 表示删除菜单响应
+message DeleteMenuResponse {
+    // success 表示是否成功
+    bool success = 1;
+    // message 表示响应消息
+    string message = 2;
+}
+
+// GetMenuRequest 表示获取菜单详情请求
+message GetMenuRequest {
+    // menu_id 表示菜单ID
+    int64 menu_id = 1;
+}
+
+// GetMenuResponse 表示获取菜单详情响应
+message GetMenuResponse {
+    // menu 表示菜单信息
+    Menu menu = 1;
+}
+
 // GetUserMenusRequest 表示获取用户菜单请求
 message GetUserMenusRequest {
     // tenant_id 表示租户ID
@@ -73,16 +173,22 @@ message ListMenusRequest {
     int64 tenant_id = 1;
     // parent_id 表示父菜单ID，0表示获取顶级菜单
     // @gotags: form:"parent_id"
-    int64 parent_id = 2;
+    optional int64 parent_id = 2;
     // menu_type 表示菜单类型过滤
     // @gotags: form:"menu_type"
-    int32 menu_type = 3;
+    optional int32 menu_type = 3;
+    // status 表示状态过滤
+    // @gotags: form:"status"
+    optional bool status = 4;
+    // visible 表示可见性过滤
+    // @gotags: form:"visible"
+    optional bool visible = 5;
     // offset 表示偏移量
     // @gotags: form:"offset"
-    int64 offset = 4;
+    int64 offset = 6;
     // limit 表示每页数量
     // @gotags: form:"limit"
-    int64 limit = 5;
+    int64 limit = 7;
 }
 
 // ListMenusResponse 表示获取菜单列表响应
@@ -91,4 +197,87 @@ message ListMenusResponse {
     int64 total_count = 1;
     // menus 表示菜单列表
     repeated Menu menus = 2;
+}
+
+// GetMenuTreeRequest 表示获取菜单树请求
+message GetMenuTreeRequest {
+    // tenant_id 表示租户ID
+    // @gotags: form:"tenant_id"
+    int64 tenant_id = 1;
+    // only_active 表示是否只获取激活的菜单
+    // @gotags: form:"only_active"
+    bool only_active = 2;
+    // menu_types 表示菜单类型过滤
+    // @gotags: form:"menu_types"
+    repeated int32 menu_types = 3;
+}
+
+// GetMenuTreeResponse 表示获取菜单树响应
+message GetMenuTreeResponse {
+    // menus 表示菜单树
+    repeated Menu menus = 1;
+}
+
+// MenuSortItem 表示菜单排序项
+message MenuSortItem {
+    // menu_id 表示菜单ID
+    int64 menu_id = 1;
+    // sort_order 表示排序值
+    int32 sort_order = 2;
+}
+
+// UpdateMenuSortRequest 表示批量更新菜单排序请求
+message UpdateMenuSortRequest {
+    // sort_items 表示排序项列表
+    repeated MenuSortItem sort_items = 1;
+}
+
+// UpdateMenuSortResponse 表示批量更新菜单排序响应
+message UpdateMenuSortResponse {
+    // success 表示是否成功
+    bool success = 1;
+    // message 表示响应消息
+    string message = 2;
+    // updated_count 表示更新的数量
+    int32 updated_count = 3;
+}
+
+// CopyMenuRequest 表示复制菜单请求
+message CopyMenuRequest {
+    // source_menu_id 表示源菜单ID
+    int64 source_menu_id = 1;
+    // target_tenant_id 表示目标租户ID
+    int64 target_tenant_id = 2;
+    // target_parent_id 表示目标父菜单ID（可选）
+    optional int64 target_parent_id = 3;
+    // new_menu_code 表示新菜单编码（可选，不指定则自动生成）
+    string new_menu_code = 4;
+    // copy_permissions 表示是否复制权限
+    bool copy_permissions = 5;
+}
+
+// CopyMenuResponse 表示复制菜单响应
+message CopyMenuResponse {
+    // new_menu_id 表示新菜单ID
+    int64 new_menu_id = 1;
+    // message 表示响应消息
+    string message = 2;
+}
+
+// MoveMenuRequest 表示移动菜单请求
+message MoveMenuRequest {
+    // menu_id 表示菜单ID
+    int64 menu_id = 1;
+    // new_parent_id 表示新父菜单ID（可选）
+    optional int64 new_parent_id = 2;
+    // new_sort_order 表示新排序值（可选）
+    optional int32 new_sort_order = 3;
+}
+
+// MoveMenuResponse 表示移动菜单响应
+message MoveMenuResponse {
+    // success 表示是否成功
+    bool success = 1;
+    // message 表示响应消息
+    string message = 2;
 } 

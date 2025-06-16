@@ -19,6 +19,7 @@ import (
 	tenantv1 "github.com/ashwinyue/one-auth/internal/apiserver/biz/v1/tenant"
 	userv1 "github.com/ashwinyue/one-auth/internal/apiserver/biz/v1/user"
 	"github.com/ashwinyue/one-auth/internal/apiserver/cache"
+	"github.com/ashwinyue/one-auth/pkg/client/sms"
 
 	// Post V2 版本（未实现，仅展示用）
 	// postv2 "github.com/ashwinyue/one-auth/internal/apiserver/biz/v2/post".
@@ -35,13 +36,20 @@ var ProviderSet = wire.NewSet(NewBiz, wire.Bind(new(IBiz), new(*biz)))
 type IBiz interface {
 	// UserV1 获取用户业务接口.
 	UserV1() userv1.UserBiz
+
 	// PostV1 获取帖子业务接口.
 	PostV1() postv1.PostBiz
 
-	// RBAC相关业务接口
-	TenantV1() tenantv1.TenantBiz
+	// RoleV1 获取角色业务接口.
 	RoleV1() rolev1.RoleBiz
+
+	// PermissionV1 获取权限业务接口.
 	PermissionV1() permissionv1.PermissionBiz
+
+	// TenantV1 获取租户业务接口.
+	TenantV1() tenantv1.TenantBiz
+
+	// MenuV1 获取菜单业务接口.
 	MenuV1() menuv1.MenuBiz
 
 	// PostV2 获取帖子业务接口（V2 版本）.
@@ -67,17 +75,13 @@ func NewBiz(store store.IStore, authz *authz.Authz, cache cache.ICache) *biz {
 func (b *biz) UserV1() userv1.UserBiz {
 	sessionManager := cache.NewSessionManager(b.cache)
 	loginSecurity := cache.NewLoginSecurityManager(b.cache)
-	return userv1.New(b.store, b.authz, sessionManager, loginSecurity)
+	smsClient := sms.NewClient(nil)
+	return userv1.New(b.store, b.authz, sessionManager, loginSecurity, smsClient)
 }
 
 // PostV1 返回一个实现了 PostBiz 接口的实例.
 func (b *biz) PostV1() postv1.PostBiz {
 	return postv1.New(b.store)
-}
-
-// TenantV1 返回一个实现了 TenantBiz 接口的实例.
-func (b *biz) TenantV1() tenantv1.TenantBiz {
-	return tenantv1.New(b.store, b.authz)
 }
 
 // RoleV1 返回一个实现了 RoleBiz 接口的实例.
@@ -90,7 +94,12 @@ func (b *biz) PermissionV1() permissionv1.PermissionBiz {
 	return permissionv1.New(b.store, b.authz)
 }
 
+// TenantV1 返回一个实现了 TenantBiz 接口的实例.
+func (b *biz) TenantV1() tenantv1.TenantBiz {
+	return tenantv1.New(b.store, b.authz)
+}
+
 // MenuV1 返回一个实现了 MenuBiz 接口的实例.
 func (b *biz) MenuV1() menuv1.MenuBiz {
-	return menuv1.New(b.store, b.authz)
+	return menuv1.NewMenuBiz(b.store, b.authz)
 }

@@ -30,6 +30,17 @@ import (
 
 // Login 实现 UserBiz 接口中的 Login 方法.
 func (b *userBiz) Login(ctx context.Context, rq *apiv1.LoginRequest) (*apiv1.LoginResponse, error) {
+	// 检查登录安全限制
+	if b.loginSecurity != nil {
+		clientIP := getClientIP(ctx)
+		locked, reason, err := b.loginSecurity.CheckLoginAttempts(ctx, rq.GetIdentifier(), clientIP)
+		if err != nil {
+			log.W(ctx).Errorw("Failed to check login attempts", "err", err)
+		} else if locked {
+			return nil, errno.ErrUserLocked.WithMessage(reason)
+		}
+	}
+
 	// 根据标识符类型查找用户
 	var userM *model.UserM
 	var userStatus *model.UserStatusM
@@ -46,7 +57,7 @@ func (b *userBiz) Login(ctx context.Context, rq *apiv1.LoginRequest) (*apiv1.Log
 	// 检查用户状态
 	if !userStatus.CanLogin() {
 		// 记录登录失败（用户状态异常）
-		b.recordLoginAttempt(ctx, userM.UserID, false)
+		b.recordLoginAttempt(ctx, strconv.FormatInt(userM.ID, 10), false)
 		if userStatus.IsLocked() {
 			return nil, errno.ErrUserLocked.WithMessage("User account is locked")
 		}
@@ -56,27 +67,27 @@ func (b *userBiz) Login(ctx context.Context, rq *apiv1.LoginRequest) (*apiv1.Log
 	// 验证登录凭证
 	if err := b.validateLoginCredentials(ctx, userM, rq); err != nil {
 		// 记录登录失败
-		b.recordLoginAttempt(ctx, userM.UserID, false)
+		b.recordLoginAttempt(ctx, strconv.FormatInt(userM.ID, 10), false)
 		return nil, err
 	}
 
 	// 登录成功，记录成功尝试
-	b.recordLoginAttempt(ctx, userM.UserID, true)
+	b.recordLoginAttempt(ctx, strconv.FormatInt(userM.ID, 10), true)
 
 	// 更新用户状态
-	if err := b.updateLoginSuccess(ctx, userM.UserID, rq); err != nil {
-		log.W(ctx).Errorw("Failed to update login success info", "user_id", userM.UserID, "err", err)
+	if err := b.updateLoginSuccess(ctx, strconv.FormatInt(userM.ID, 10), rq); err != nil {
+		log.W(ctx).Errorw("Failed to update login success info", "user_id", userM.ID, "err", err)
 	}
 
 	// 生成令牌
-	tokenStr, expireAt, err := token.Sign(userM.UserID)
+	tokenStr, expireAt, err := token.Sign(strconv.FormatInt(userM.ID, 10))
 	if err != nil {
 		log.W(ctx).Errorw("Failed to sign token", "err", err)
 		return nil, errno.ErrSignToken
 	}
 
 	// 生成刷新令牌（使用更长的过期时间）
-	refreshToken, _, err := token.SignWithExpiration(userM.UserID, 7*24*time.Hour) // 7天
+	refreshToken, _, err := token.SignWithExpiration(strconv.FormatInt(userM.ID, 10), 7*24*time.Hour) // 7天
 	if err != nil {
 		log.W(ctx).Errorw("Failed to sign refresh token", "err", err)
 		return nil, errno.ErrSignToken
@@ -85,13 +96,13 @@ func (b *userBiz) Login(ctx context.Context, rq *apiv1.LoginRequest) (*apiv1.Log
 	// 创建会话
 	sessionID, err := b.createUserSession(ctx, userM, rq)
 	if err != nil {
-		log.W(ctx).Errorw("Failed to create user session", "user_id", userM.UserID, "err", err)
+		log.W(ctx).Errorw("Failed to create user session", "user_id", userM.ID, "err", err)
 		// 会话创建失败不影响登录，继续返回token
 	}
 
 	// 构建用户信息
 	userInfo := &apiv1.UserInfo{
-		UserId:   userM.UserID,
+		UserId:   strconv.FormatInt(userM.ID, 10),
 		Username: userM.Username,
 		Nickname: userM.Nickname,
 		Email:    userM.Email,
@@ -113,7 +124,7 @@ func (b *userBiz) Login(ctx context.Context, rq *apiv1.LoginRequest) (*apiv1.Log
 
 // RefreshToken 用于刷新用户的身份验证令牌.
 func (b *userBiz) RefreshToken(ctx context.Context, rq *apiv1.RefreshTokenRequest) (*apiv1.RefreshTokenResponse, error) {
-	tokenStr, expireAt, err := token.Sign(contextx.UserID(ctx))
+	tokenStr, expireAt, err := token.Sign(strconv.FormatInt(contextx.UserID(ctx), 10))
 	if err != nil {
 		log.W(ctx).Errorw("Failed to sign token", "err", err)
 		return nil, errno.ErrSignToken
@@ -144,77 +155,144 @@ func (b *userBiz) ChangePassword(ctx context.Context, rq *apiv1.ChangePasswordRe
 
 // SendVerifyCode 发送验证码
 func (b *userBiz) SendVerifyCode(ctx context.Context, rq *apiv1.SendVerifyCodeRequest) (*apiv1.SendVerifyCodeResponse, error) {
-	if b.loginSecurity == nil {
-		return nil, errno.ErrInternal.WithMessage("Login security manager not available")
+	// 验证目标类型和格式
+	if rq.GetTargetType() == "phone" {
+		if !b.smsClient.IsValidPhone(rq.GetTarget()) {
+			return nil, errno.ErrInvalidArgument.WithMessage("Invalid phone number format")
+		}
 	}
 
-	// 生成6位数字验证码
-	code := generateVerifyCode()
+	// 生成验证码
+	code := b.smsClient.GenerateCode()
 
-	// 存储验证码
-	if err := b.loginSecurity.StoreVerifyCode(ctx, rq.GetTarget(), rq.GetCodeType(), code); err != nil {
-		log.W(ctx).Errorw("Failed to store verify code", "target", rq.GetTarget(), "err", err)
-		return nil, errno.ErrOperationFailed.WithMessage(err.Error())
+	// 存储验证码到缓存
+	if b.loginSecurity != nil {
+		if err := b.loginSecurity.StoreVerifyCode(ctx, rq.GetTarget(), rq.GetCodeType(), code); err != nil {
+			log.W(ctx).Errorw("Failed to store verify code", "target", rq.GetTarget(), "err", err)
+			return nil, errno.ErrOperationFailed.WithMessage(err.Error())
+		}
 	}
 
-	// 这里应该调用短信或邮件服务发送验证码
-	// 暂时只记录日志
-	log.Infow("Verify code generated",
+	// 发送验证码
+	var err error
+	switch rq.GetTargetType() {
+	case "phone":
+		err = b.smsClient.SendVerifyCode(ctx, rq.GetTarget(), code, rq.GetCodeType())
+	case "email":
+		// TODO: 实现邮件发送服务
+		log.Infow("邮件验证码发送功能待实现", "email", rq.GetTarget(), "code", code)
+	default:
+		return nil, errno.ErrInvalidArgument.WithMessage("Unsupported target type")
+	}
+
+	if err != nil {
+		log.W(ctx).Errorw("Failed to send verify code", "target", rq.GetTarget(), "type", rq.GetTargetType(), "err", err)
+		return nil, errno.ErrOperationFailed.WithMessage("Failed to send verify code")
+	}
+
+	log.Infow("验证码发送成功",
 		"target", rq.GetTarget(),
 		"code_type", rq.GetCodeType(),
 		"target_type", rq.GetTargetType(),
-		"code", code) // 生产环境中不应该记录验证码
+	)
 
 	return &apiv1.SendVerifyCodeResponse{
 		Success:         true,
-		Message:         "Verify code sent successfully",
+		Message:         "验证码发送成功",
 		CooldownSeconds: 60,
 	}, nil
 }
 
 // Logout 用户登出
 func (b *userBiz) Logout(ctx context.Context, rq *apiv1.LogoutRequest) (*apiv1.LogoutResponse, error) {
-	if b.sessionManager == nil {
+	userID := contextx.UserID(ctx)
+
+	// 如果指定了session_id，则只登出指定会话
+	if rq.GetSessionId() != "" {
+		if err := b.logoutSession(ctx, userID, rq.GetSessionId()); err != nil {
+			log.W(ctx).Errorw("Failed to logout session", "session_id", rq.GetSessionId(), "err", err)
+			return nil, errno.ErrOperationFailed.WithMessage("Failed to logout session")
+		}
 		return &apiv1.LogoutResponse{
 			Success: true,
-			Message: "Logout successfully (session manager not available)",
+			Message: "Session logged out successfully",
 		}, nil
 	}
 
-	// 获取当前用户ID（从认证中间件设置的上下文中获取）
-	userID := getUserIDFromContext(ctx)
-	if userID == "" {
-		return nil, errno.ErrUnauthenticated.WithMessage("User not authenticated")
+	// 如果指定logout_all，则登出所有设备
+	if rq.GetLogoutAll() {
+		if err := b.logoutAllSessions(ctx, userID); err != nil {
+			log.W(ctx).Errorw("Failed to logout all sessions", "user_id", userID, "err", err)
+			return nil, errno.ErrOperationFailed.WithMessage("Failed to logout all sessions")
+		}
+		return &apiv1.LogoutResponse{
+			Success: true,
+			Message: "All sessions logged out successfully",
+		}, nil
 	}
 
-	// 如果指定了会话ID，只登出该会话
-	if rq.GetSessionId() != "" {
-		if err := b.sessionManager.DeleteSession(ctx, rq.GetSessionId()); err != nil {
-			log.W(ctx).Errorw("Failed to destroy session", "session_id", rq.GetSessionId(), "err", err)
-			return nil, errno.ErrOperationFailed.WithMessage("Failed to logout")
-		}
-	} else if rq.GetLogoutAll() {
-		// 登出所有设备 - 遍历所有客户端类型
-		for clientType := range cache.SessionValidDuration {
-			if err := b.sessionManager.KickUserSession(ctx, userID, clientType); err != nil {
-				log.W(ctx).Errorw("Failed to kick user session", "user_id", userID, "client_type", clientType, "err", err)
-			}
-		}
-	} else {
-		// 登出当前会话（从请求头获取会话ID）
-		sessionID := getSessionIDFromContext(ctx)
-		if sessionID != "" {
-			if err := b.sessionManager.DeleteSession(ctx, sessionID); err != nil {
-				log.W(ctx).Errorw("Failed to destroy current session", "session_id", sessionID, "err", err)
-				return nil, errno.ErrOperationFailed.WithMessage("Failed to logout")
-			}
+	// 默认登出当前会话
+	sessionID := getSessionIDFromContext(ctx)
+	if sessionID != "" {
+		if err := b.logoutSession(ctx, userID, sessionID); err != nil {
+			log.W(ctx).Errorw("Failed to logout current session", "session_id", sessionID, "err", err)
 		}
 	}
 
 	return &apiv1.LogoutResponse{
 		Success: true,
-		Message: "Logout successfully",
+		Message: "Logged out successfully",
 	}, nil
+}
+
+// logoutSession 登出指定会话
+func (b *userBiz) logoutSession(ctx context.Context, userID int64, sessionID string) error {
+	if b.sessionManager == nil {
+		return nil
+	}
+
+	return b.sessionManager.DeleteSession(ctx, sessionID)
+}
+
+// logoutAllSessions 登出用户的所有会话
+func (b *userBiz) logoutAllSessions(ctx context.Context, userID int64) error {
+	if b.sessionManager == nil {
+		return nil
+	}
+
+	userIDStr := strconv.FormatInt(userID, 10)
+
+	// 遍历所有客户端类型，登出对应的会话
+	for clientType := range cache.SessionValidDuration {
+		if err := b.sessionManager.KickUserSession(ctx, userIDStr, clientType); err != nil {
+			log.W(ctx).Errorw("Failed to kick user session",
+				"user_id", userIDStr,
+				"client_type", clientType,
+				"err", err)
+		}
+	}
+
+	return nil
+}
+
+// getSessionIDFromContext 从上下文中获取会话ID
+func getSessionIDFromContext(ctx context.Context) string {
+	// 尝试从 Gin 上下文中获取会话ID
+	if ginCtx, ok := ctx.(*gin.Context); ok {
+		if sessionID := ginCtx.GetHeader("X-Session-ID"); sessionID != "" {
+			return sessionID
+		}
+		if sessionID := ginCtx.GetHeader("Session-ID"); sessionID != "" {
+			return sessionID
+		}
+	}
+
+	// 从 Context Value 中获取
+	if sessionID, ok := ctx.Value("session_id").(string); ok {
+		return sessionID
+	}
+
+	return ""
 }
 
 // 以下是辅助方法
@@ -223,13 +301,13 @@ func (b *userBiz) Logout(ctx context.Context, rq *apiv1.LogoutRequest) (*apiv1.L
 func (b *userBiz) findUserByIdentifier(ctx context.Context, authID, authType string) (*model.UserM, *model.UserStatusM, error) {
 	// 根据认证标识符查找用户状态
 	authTypeEnum := model.StringToAuthType(authType)
-	userStatus, err := model.GetUserByAuthID(b.store.DB(ctx), authID, authTypeEnum)
+	userStatus, err := b.store.UserStatus().Get(ctx, where.F("auth_id", authID, "auth_type", int32(authTypeEnum)))
 	if err != nil {
 		return nil, nil, errno.ErrUserNotFound.WithMessage("Invalid login credentials")
 	}
 
 	// 查找用户基本信息
-	userM, err := b.store.User().Get(ctx, where.F("user_id", userStatus.UserID))
+	userM, err := b.store.User().Get(ctx, where.F("id", userStatus.UserID))
 	if err != nil {
 		return nil, nil, errno.ErrUserNotFound
 	}
@@ -311,7 +389,7 @@ func (b *userBiz) createUserSession(ctx context.Context, userM *model.UserM, rq 
 
 	// 创建会话信息
 	sessionInfo := &cache.UserSession{
-		UserID:     userM.UserID,
+		UserID:     strconv.FormatInt(userM.ID, 10), // 转换为字符串以保持接口兼容性
 		Username:   userM.Username,
 		LoginIP:    clientIP,
 		DeviceID:   rq.GetDeviceId(),
@@ -355,31 +433,22 @@ func getClientTypeFromString(clientType string) cache.ClientType {
 	}
 }
 
-// generateVerifyCode 生成6位数字验证码
-func generateVerifyCode() string {
-	rand.Seed(time.Now().UnixNano())
-	code := rand.Intn(900000) + 100000 // 生成100000-999999之间的数字
-	return strconv.Itoa(code)
-}
-
-// getUserIDFromContext 从上下文中获取用户ID
-func getUserIDFromContext(ctx context.Context) string {
-	// 这里需要根据实际的上下文实现来获取用户ID
-	// 通常是从认证中间件设置的上下文中获取
+// getClientIP 从上下文中获取客户端IP
+func getClientIP(ctx context.Context) string {
 	if ginCtx, ok := ctx.(*gin.Context); ok {
-		if userID, exists := ginCtx.Get("user_id"); exists {
-			if uid, ok := userID.(string); ok {
-				return uid
-			}
+		if clientIP := ginCtx.ClientIP(); clientIP != "" {
+			return clientIP
 		}
 	}
 	return ""
 }
 
-// getSessionIDFromContext 从上下文中获取会话ID
-func getSessionIDFromContext(ctx context.Context) string {
+// getUserAgent 从上下文中获取客户端UserAgent
+func getUserAgent(ctx context.Context) string {
 	if ginCtx, ok := ctx.(*gin.Context); ok {
-		return ginCtx.GetHeader("X-Session-ID")
+		if userAgent := ginCtx.Request.UserAgent(); userAgent != "" {
+			return userAgent
+		}
 	}
 	return ""
 }

@@ -32,7 +32,7 @@ type grpcServer struct {
 var _ server.Server = (*grpcServer)(nil)
 
 // NewGRPCServerOr 创建并初始化 gRPC 或者 gRPC + gRPC-Gateway 服务器.
-// 在 Go 项目开发中，NewGRPCServerOr 这个函数命名中的 Or 一般用来表示“或者”的含义，
+// 在 Go 项目开发中，NewGRPCServerOr 这个函数命名中的 Or 一般用来表示"或者"的含义，
 // 通常暗示该函数会在两种或多种选择中选择一种可能性。具体的含义需要结合函数的实现
 // 或上下文来理解。以下是一些可能的解释：
 //  1. 提供多种构建方式的选择
@@ -46,7 +46,7 @@ func (c *ServerConfig) NewGRPCServerOr() (server.Server, error) {
 			// 请求 ID 拦截器
 			mw.RequestIDInterceptor(),
 			// 认证拦截器
-			selector.UnaryServerInterceptor(mw.AuthnInterceptor(c.retriever), NewAuthnWhiteListMatcher()),
+			selector.UnaryServerInterceptor(mw.AuthnInterceptor(c.store.User()), NewAuthnWhiteListMatcher()),
 			// 授权拦截器
 			selector.UnaryServerInterceptor(mw.AuthzInterceptor(c.authz), NewAuthzWhiteListMatcher()),
 			// 请求默认值设置拦截器

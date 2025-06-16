@@ -109,7 +109,7 @@ CREATE TABLE `menus` (
   `parent_id` bigint DEFAULT NULL COMMENT '父菜单ID',
   `menu_code` varchar(50) NOT NULL COMMENT '菜单编码',
   `title` varchar(100) NOT NULL COMMENT '菜单标题',
-  `menu_type` tinyint NOT NULL DEFAULT '1' COMMENT '菜单类型：1-目录，2-菜单，3-按钮，4-接口',
+  `menu_type` tinyint NOT NULL DEFAULT '1' COMMENT '菜单类型：1-目录，2-菜单，3-按钮',
   `route_path` varchar(255) DEFAULT NULL COMMENT '前端路由路径',
   `component` varchar(255) DEFAULT NULL COMMENT '前端组件路径',
   `icon` varchar(50) DEFAULT NULL COMMENT '图标',
@@ -186,9 +186,8 @@ CREATE TABLE `menu_permissions` (
 DROP TABLE IF EXISTS `user_tenants`;
 CREATE TABLE `user_tenants` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `user_id` bigint unsigned NOT NULL COMMENT '用户ID（关联user表的id字段）',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
   `tenant_id` bigint NOT NULL COMMENT '租户ID',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态：1-启用，0-禁用',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted_at` datetime DEFAULT NULL COMMENT '删除时间（软删除）',
@@ -196,30 +195,8 @@ CREATE TABLE `user_tenants` (
   UNIQUE KEY `idx_user_tenant` (`user_id`, `tenant_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_tenant_id` (`tenant_id`),
-  KEY `idx_status` (`status`),
   KEY `idx_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户租户关联表';
-
--- =====================================================
--- 角色权限关联表 (role_permissions)
--- =====================================================
-
-DROP TABLE IF EXISTS `role_permissions`;
-CREATE TABLE `role_permissions` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `role_id` bigint NOT NULL COMMENT '角色ID',
-  `permission_id` bigint NOT NULL COMMENT '权限ID',
-  `tenant_id` bigint NOT NULL COMMENT '租户ID',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `deleted_at` datetime DEFAULT NULL COMMENT '删除时间（软删除）',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_role_permission_tenant` (`role_id`, `permission_id`, `tenant_id`),
-  KEY `idx_role_id` (`role_id`),
-  KEY `idx_permission_id` (`permission_id`),
-  KEY `idx_tenant_id` (`tenant_id`),
-  KEY `idx_deleted_at` (`deleted_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限关联表';
 
 -- =====================================================
 -- 用户表 (user) - 兼容原有结构
@@ -405,11 +382,11 @@ INSERT INTO `user_status` (`auth_id`, `auth_type`, `user_id`, `tenant_id`, `stat
 ('13800138002', 3, 3, 1, 1, 0, 0);                   -- phone, active, not verified, not primary
 
 -- 插入用户租户关联
-INSERT INTO `user_tenants` (`user_id`, `tenant_id`, `status`) VALUES
-(1, 1, 1),  -- admin(id=1) 属于默认租户
-(2, 1, 1),  -- user1(id=2) 属于默认租户
-(3, 1, 1),  -- user2(id=3) 属于默认租户
-(1, 2, 1);  -- admin(id=1) 也属于演示租户
+INSERT INTO `user_tenants` (`user_id`, `tenant_id`, `created_at`, `updated_at`) VALUES
+(1, 1, '2024-12-12 03:55:25', '2024-12-12 03:55:25'),  -- admin(id=1) 属于默认租户
+(2, 1, '2024-12-12 03:55:25', '2024-12-12 03:55:25'),  -- user1(id=2) 属于默认租户
+(3, 1, '2024-12-12 03:55:25', '2024-12-12 03:55:25'),  -- user2(id=3) 属于默认租户
+(1, 2, '2024-12-12 03:55:25', '2024-12-12 03:55:25');  -- admin(id=1) 也属于演示租户
 
 -- 插入标准菜单
 INSERT INTO `menus` (`tenant_id`, `menu_code`, `title`, `menu_type`, `route_path`, `component`, `icon`, `sort_order`, `visible`, `status`) VALUES
@@ -485,25 +462,6 @@ JOIN `permissions` p ON (
     (m.menu_code = 'user-profile' AND p.permission_code = 'profile:view')
 )
 WHERE m.deleted_at IS NULL AND p.deleted_at IS NULL;
-
--- 为超级管理员分配所有权限
-INSERT INTO `role_permissions` (`role_id`, `permission_id`, `tenant_id`)
-SELECT 1, p.id, 1 FROM `permissions` p WHERE p.tenant_id = 1;
-
--- 为普通管理员分配部分权限
-INSERT INTO `role_permissions` (`role_id`, `permission_id`, `tenant_id`)
-SELECT 2, p.id, 1 FROM `permissions` p 
-WHERE p.tenant_id = 1 AND p.permission_code IN (
-  'dashboard:view', 'user:view', 'user:create', 'user:update', 
-  'role:view', 'menu:view', 'profile:view', 'profile:update'
-);
-
--- 为普通用户分配基础权限
-INSERT INTO `role_permissions` (`role_id`, `permission_id`, `tenant_id`)
-SELECT 3, p.id, 1 FROM `permissions` p 
-WHERE p.tenant_id = 1 AND p.permission_code IN (
-  'dashboard:view', 'profile:view', 'profile:update'
-);
 
 -- =====================================================
 -- 恢复环境设置
@@ -670,7 +628,6 @@ SELECT
     (SELECT COUNT(*) FROM user_status WHERE is_verified = 1) as verified_methods,
     (SELECT COUNT(*) FROM menus) as total_menus,
     (SELECT COUNT(*) FROM permissions) as total_permissions,
-    (SELECT COUNT(*) FROM role_permissions) as total_role_permissions,
     (SELECT COUNT(*) FROM user_tenants) as total_user_tenants,
     (SELECT COUNT(*) FROM casbin_rule) as total_casbin_rules;
 

@@ -13,13 +13,28 @@ import (
 	"fmt"
 	"strconv"
 
+	"net/http"
+
+	"github.com/ashwinyue/one-auth/internal/apiserver/model"
 	"github.com/ashwinyue/one-auth/internal/apiserver/store"
 	"github.com/ashwinyue/one-auth/internal/pkg/contextx"
 	"github.com/ashwinyue/one-auth/internal/pkg/errno"
 	"github.com/ashwinyue/one-auth/internal/pkg/log"
 	apiv1 "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1"
 	"github.com/ashwinyue/one-auth/pkg/authz"
+	"github.com/ashwinyue/one-auth/pkg/errorsx"
 	"github.com/ashwinyue/one-auth/pkg/store/where"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"gorm.io/gorm"
+)
+
+// 定义Tenant模块特有的错误码
+var (
+	// ErrTenantNotFound 表示租户未找到
+	ErrTenantNotFound = &errorsx.ErrorX{Code: http.StatusNotFound, Reason: "NotFound.TenantNotFound", Message: "Tenant not found."}
+
+	// ErrTenantDisabled 表示租户已禁用
+	ErrTenantDisabled = &errorsx.ErrorX{Code: http.StatusForbidden, Reason: "Forbidden.TenantDisabled", Message: "Tenant is disabled."}
 )
 
 // TenantBiz 定义处理租户相关请求所需的方法.
@@ -42,6 +57,7 @@ type tenantBiz struct {
 // 确保 tenantBiz 实现了 TenantBiz 接口.
 var _ TenantBiz = (*tenantBiz)(nil)
 
+// New 创建一个新的 TenantBiz 实例.
 func New(store store.IStore, authz *authz.Authz) *tenantBiz {
 	return &tenantBiz{store: store, authz: authz}
 }
@@ -50,7 +66,7 @@ func New(store store.IStore, authz *authz.Authz) *tenantBiz {
 func (b *tenantBiz) GetUserTenants(ctx context.Context, rq *apiv1.GetUserTenantsRequest) (*apiv1.GetUserTenantsResponse, error) {
 	userID := contextx.UserID(ctx)
 	if userID == 0 {
-		return nil, errno.ErrUnauthenticated
+		return nil, errno.ErrUnauthenticated.WithMessage("user not found in context")
 	}
 
 	// 使用tenant store的扩展方法获取用户租户
@@ -63,23 +79,7 @@ func (b *tenantBiz) GetUserTenants(ctx context.Context, rq *apiv1.GetUserTenants
 	// 转换为响应格式
 	var tenantList []*apiv1.Tenant
 	for _, tenant := range tenants {
-		description := ""
-		if tenant.Description != nil {
-			description = *tenant.Description
-		}
-
-		status := int32(0)
-		if tenant.Status {
-			status = 1
-		}
-
-		tenantList = append(tenantList, &apiv1.Tenant{
-			Id:          tenant.ID,
-			TenantCode:  tenant.TenantCode,
-			Name:        tenant.Name,
-			Description: description,
-			Status:      status,
-		})
+		tenantList = append(tenantList, convertTenantToAPI(tenant))
 	}
 
 	return &apiv1.GetUserTenantsResponse{Tenants: tenantList}, nil
@@ -89,7 +89,7 @@ func (b *tenantBiz) GetUserTenants(ctx context.Context, rq *apiv1.GetUserTenants
 func (b *tenantBiz) SwitchTenant(ctx context.Context, rq *apiv1.SwitchTenantRequest) (*apiv1.SwitchTenantResponse, error) {
 	userID := contextx.UserID(ctx)
 	if userID == 0 {
-		return nil, errno.ErrUnauthenticated
+		return nil, errno.ErrUnauthenticated.WithMessage("user not found in context")
 	}
 
 	// 验证用户是否属于该租户
@@ -102,8 +102,26 @@ func (b *tenantBiz) SwitchTenant(ctx context.Context, rq *apiv1.SwitchTenantRequ
 		return nil, errno.ErrPermissionDenied.WithMessage("user does not belong to this tenant")
 	}
 
+	// 验证租户是否存在且状态有效
+	tenant, err := b.store.Tenant().Get(ctx, where.F("id", rq.TenantId))
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrTenantNotFound.WithMessage("tenant not found")
+		}
+		return nil, err
+	}
+
+	if !tenant.Status {
+		return nil, ErrTenantDisabled.WithMessage("tenant is disabled")
+	}
+
 	// 这里可以将租户ID存储到会话或缓存中
 	// 暂时返回成功，实际实现中可能需要更新JWT token或会话信息
+	log.W(ctx).Infow("User switched tenant successfully",
+		"user_id", userID,
+		"tenant_id", rq.TenantId,
+		"tenant_code", tenant.TenantCode)
+
 	return &apiv1.SwitchTenantResponse{Success: true}, nil
 }
 
@@ -111,14 +129,21 @@ func (b *tenantBiz) SwitchTenant(ctx context.Context, rq *apiv1.SwitchTenantRequ
 func (b *tenantBiz) GetUserProfile(ctx context.Context, rq *apiv1.GetUserProfileRequest) (*apiv1.GetUserProfileResponse, error) {
 	userID := contextx.UserID(ctx)
 	if userID == 0 {
-		return nil, errno.ErrUnauthenticated
+		return nil, errno.ErrUnauthenticated.WithMessage("user not found in context")
 	}
 
 	// 获取当前租户ID（从请求参数或上下文中获取）
 	tenantID := rq.TenantId
 	if tenantID == 0 {
-		// 如果没有指定租户，获取用户的默认租户
-		tenantID = 1 // 默认租户
+		contextTenantID := contextx.TenantID(ctx)
+		if contextTenantID != "" {
+			if tid, err := strconv.ParseInt(contextTenantID, 10, 64); err == nil {
+				tenantID = tid
+			}
+		}
+		if tenantID == 0 {
+			tenantID = 1 // 默认租户
+		}
 	}
 
 	// 获取用户基本信息
@@ -136,7 +161,7 @@ func (b *tenantBiz) GetUserProfile(ctx context.Context, rq *apiv1.GetUserProfile
 		roles = []string{} // 如果获取失败，返回空角色列表
 	}
 
-	// 实现获取用户权限和菜单的逻辑
+	// 获取用户权限和菜单
 	permissions, menus := b.getUserPermissionsAndMenus(ctx, userIdentifier, tenantIdentifier)
 
 	// 获取当前租户信息
@@ -149,21 +174,7 @@ func (b *tenantBiz) GetUserProfile(ctx context.Context, rq *apiv1.GetUserProfile
 
 	var currentTenant *apiv1.Tenant
 	if tenantM != nil {
-		description := ""
-		if tenantM.Description != nil {
-			description = *tenantM.Description
-		}
-		status := int32(0)
-		if tenantM.Status {
-			status = 1
-		}
-		currentTenant = &apiv1.Tenant{
-			Id:          tenantM.ID,
-			TenantCode:  tenantM.TenantCode,
-			Name:        tenantM.Name,
-			Description: description,
-			Status:      status,
-		}
+		currentTenant = convertTenantToAPI(tenantM)
 	} else {
 		currentTenant = &apiv1.Tenant{
 			Id:         tenantID,
@@ -175,7 +186,7 @@ func (b *tenantBiz) GetUserProfile(ctx context.Context, rq *apiv1.GetUserProfile
 	return &apiv1.GetUserProfileResponse{
 		User: &apiv1.UserProfile{
 			Id:            userM.ID,
-			UserId:        fmt.Sprintf("%d", userM.ID), // 使用数字ID转字符串
+			UserId:        fmt.Sprintf("%d", userM.ID),
 			Username:      userM.Username,
 			Nickname:      userM.Nickname,
 			Email:         userM.Email,
@@ -219,29 +230,14 @@ func (b *tenantBiz) getUserPermissionsAndMenus(ctx context.Context, userIdentifi
 					// 从数据库查询权限详情
 					permissionM, err := b.store.Permission().Get(ctx, where.F("id", permissionID))
 					if err == nil {
-						description := ""
-						if permissionM.Description != nil {
-							description = *permissionM.Description
-						}
+						permissionList = append(permissionList, convertPermissionToAPI(permissionM))
 
-						status := int32(0)
-						if permissionM.Status {
-							status = 1
-						}
-
-						permissionList = append(permissionList, &apiv1.Permission{
-							Id:             permissionM.ID,
-							TenantId:       permissionM.TenantID,
-							MenuId:         permissionM.MenuID,
-							PermissionCode: permissionM.PermissionCode,
-							Name:           permissionM.Name,
-							Description:    description,
-							Status:         status,
-						})
-
-						// 收集菜单ID
-						if permissionM.MenuID > 0 {
-							menuIDSet[permissionM.MenuID] = true
+						// 通过menu_permissions关联表查询菜单ID
+						_, menuPermissions, err := b.store.MenuPermission().List(ctx, where.F("permission_id", permissionID))
+						if err == nil {
+							for _, mp := range menuPermissions {
+								menuIDSet[mp.MenuID] = true
+							}
 						}
 					}
 				}
@@ -254,65 +250,7 @@ func (b *tenantBiz) getUserPermissionsAndMenus(ctx context.Context, userIdentifi
 	for menuID := range menuIDSet {
 		menuM, err := b.store.Menu().Get(ctx, where.F("id", menuID))
 		if err == nil && menuM.Status {
-			// 处理可选字段
-			parentID := int64(0)
-			if menuM.ParentID != nil {
-				parentID = *menuM.ParentID
-			}
-
-			routePath := ""
-			if menuM.RoutePath != nil {
-				routePath = *menuM.RoutePath
-			}
-
-			apiPath := ""
-			if menuM.APIPath != nil {
-				apiPath = *menuM.APIPath
-			}
-
-			httpMethods := ""
-			if menuM.HTTPMethods != nil {
-				httpMethods = *menuM.HTTPMethods
-			}
-
-			component := ""
-			if menuM.Component != nil {
-				component = *menuM.Component
-			}
-
-			icon := ""
-			if menuM.Icon != nil {
-				icon = *menuM.Icon
-			}
-
-			status := int32(0)
-			if menuM.Status {
-				status = 1
-			}
-
-			menus = append(menus, &apiv1.Menu{
-				Id:          menuM.ID,
-				TenantId:    menuM.TenantID,
-				ParentId:    parentID,
-				MenuCode:    menuM.MenuCode,
-				Title:       menuM.Title,
-				RoutePath:   routePath,
-				ApiPath:     apiPath,
-				HttpMethods: httpMethods,
-				RequireAuth: menuM.RequireAuth,
-				Component:   component,
-				Icon:        icon,
-				SortOrder:   int32(menuM.SortOrder),
-				MenuType: func() int32 {
-					if menuM.MenuType {
-						return 1
-					} else {
-						return 0
-					}
-				}(),
-				Visible: menuM.Visible,
-				Status:  status,
-			})
+			menus = append(menus, convertMenuToAPI(menuM))
 		}
 	}
 
@@ -340,27 +278,106 @@ func (b *tenantBiz) ListTenants(ctx context.Context, rq *apiv1.ListTenantsReques
 	// 转换为响应格式
 	var tenantList []*apiv1.Tenant
 	for _, tenant := range tenants {
-		description := ""
-		if tenant.Description != nil {
-			description = *tenant.Description
-		}
-
-		status := int32(0)
-		if tenant.Status {
-			status = 1
-		}
-
-		tenantList = append(tenantList, &apiv1.Tenant{
-			Id:          tenant.ID,
-			TenantCode:  tenant.TenantCode,
-			Name:        tenant.Name,
-			Description: description,
-			Status:      status,
-		})
+		tenantList = append(tenantList, convertTenantToAPI(tenant))
 	}
 
 	return &apiv1.ListTenantsResponse{
 		Tenants:    tenantList,
 		TotalCount: count,
 	}, nil
+}
+
+// convertTenantToAPI 将数据库模型转换为API响应模型
+func convertTenantToAPI(tenantM *model.TenantM) *apiv1.Tenant {
+	description := ""
+	if tenantM.Description != nil {
+		description = *tenantM.Description
+	}
+
+	status := int32(0)
+	if tenantM.Status {
+		status = 1
+	}
+
+	return &apiv1.Tenant{
+		Id:          tenantM.ID,
+		TenantCode:  tenantM.TenantCode,
+		Name:        tenantM.Name,
+		Description: description,
+		Status:      status,
+		CreatedAt:   timestamppb.New(tenantM.CreatedAt),
+		UpdatedAt:   timestamppb.New(tenantM.UpdatedAt),
+	}
+}
+
+// convertPermissionToAPI 将数据库模型转换为API响应模型
+func convertPermissionToAPI(permissionM *model.PermissionM) *apiv1.Permission {
+	description := ""
+	if permissionM.Description != nil {
+		description = *permissionM.Description
+	}
+
+	status := int32(0)
+	if permissionM.Status {
+		status = 1
+	}
+
+	// 注意：这里设置MenuId为0，因为Permission模型中没有直接的MenuID字段
+	// 如果需要MenuID，可以通过menu_permissions关联表查询
+	return &apiv1.Permission{
+		Id:             permissionM.ID,
+		TenantId:       permissionM.TenantID,
+		MenuId:         0, // 需要通过关联查询获取
+		PermissionCode: permissionM.PermissionCode,
+		Name:           permissionM.Name,
+		Description:    description,
+		Status:         status,
+		CreatedAt:      timestamppb.New(permissionM.CreatedAt),
+		UpdatedAt:      timestamppb.New(permissionM.UpdatedAt),
+	}
+}
+
+// convertMenuToAPI 将数据库模型转换为API响应模型
+func convertMenuToAPI(menuM *model.MenuM) *apiv1.Menu {
+	parentID := int64(0)
+	if menuM.ParentID != nil {
+		parentID = *menuM.ParentID
+	}
+
+	routePath := ""
+	if menuM.RoutePath != nil {
+		routePath = *menuM.RoutePath
+	}
+
+	component := ""
+	if menuM.Component != nil {
+		component = *menuM.Component
+	}
+
+	icon := ""
+	if menuM.Icon != nil {
+		icon = *menuM.Icon
+	}
+
+	status := int32(0)
+	if menuM.Status {
+		status = 1
+	}
+
+	return &apiv1.Menu{
+		Id:        menuM.ID,
+		TenantId:  menuM.TenantID,
+		ParentId:  parentID,
+		MenuCode:  menuM.MenuCode,
+		Title:     menuM.Title,
+		MenuType:  menuM.MenuType,
+		RoutePath: routePath,
+		Component: component,
+		Icon:      icon,
+		SortOrder: int32(menuM.SortOrder),
+		Visible:   menuM.Visible,
+		Status:    status,
+		CreatedAt: timestamppb.New(menuM.CreatedAt),
+		UpdatedAt: timestamppb.New(menuM.UpdatedAt),
+	}
 }

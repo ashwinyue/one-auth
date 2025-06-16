@@ -110,13 +110,13 @@ func EnhancedAuthnMiddleware(retriever EnhancedUserRetriever, config *Authentica
 		}
 
 		// 5. 设置用户上下文
-		ctx := contextx.WithUserID(c.Request.Context(), user.UserID)
+		ctx := contextx.WithUserID(c.Request.Context(), user.ID)
 		ctx = contextx.WithUsername(ctx, user.Username)
 		c.Request = c.Request.WithContext(ctx)
 
 		// 6. 记录访问日志
 		log.Debugw("Authentication successful",
-			"userID", user.UserID,
+			"userID", user.ID,
 			"username", user.Username,
 			"path", c.Request.URL.Path,
 			"method", c.Request.Method,

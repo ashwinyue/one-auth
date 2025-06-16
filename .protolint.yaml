@@ -117,6 +117,8 @@ lint:
       # The specific keywords including prepositions to ignore. E.g. end_of_support is a term you would like to use, and skip checking.
       excludes:
         - end_of_support
+        - created_at
+        - updated_at
 
     # REPEATED_FIELD_NAMES_PLURALIZED rule option.
     ## The spec for each rules follows the implementation of https://github.com/gertd/go-pluralize.
@@ -124,6 +126,7 @@ lint:
     repeated_field_names_pluralized:
       uncountable_rules:
         - paper
+        - matrix
       irregular_rules:
         Irregular: Regular
 
@@ -137,7 +140,10 @@ lint:
       # The specific keywords including prepositions to ignore. E.g. EndOfSupport is a term you would like to use, and skip checking.
       excludes:
         - EndOfSupport
-        -
+        - MenuWithPermissions
+        - CreateMenuWithPermissionsRequest
+        - CreateMenuWithPermissionsResponse
+
     #  RPC_NAMES_CASE rule option.
     rpc_names_case:
       # The specific convention the name should conforms to.

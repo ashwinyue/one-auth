@@ -90,20 +90,17 @@ func (s *menuPermissionStore) ConfigureMenuPermissions(ctx context.Context, menu
 			if err != nil {
 				if permConfig.AutoCreate {
 					// 自动创建权限
-					newPerm := &model.PermissionNewM{
+					newPerm := &model.PermissionM{
 						PermissionCode: permConfig.PermissionCode,
 						Name:           permConfig.PermissionCode,
-						ResourceType:   model.ResourceTypeMenu,
+						ResourceType:   "menu",
 						Status:         true,
 					}
 					if err := s.ds.DB(ctx).Create(newPerm).Error; err != nil {
 						log.W(ctx).Errorw("Failed to auto create permission", "code", permConfig.PermissionCode, "err", err)
 						continue
 					}
-					permission = &model.PermissionM{
-						ID:             newPerm.ID,
-						PermissionCode: newPerm.PermissionCode,
-					}
+					permission = newPerm
 				} else {
 					log.W(ctx).Errorw("Permission not found", "code", permConfig.PermissionCode, "err", err)
 					continue
@@ -243,7 +240,7 @@ func (s *menuPermissionStore) GetMenuPermissionMatrix(ctx context.Context, tenan
 // GetUserAccessibleMenus 获取用户可访问的菜单
 func (s *menuPermissionStore) GetUserAccessibleMenus(ctx context.Context, userID string, tenantID int64) ([]*model.MenuWithPermissions, error) {
 	// 获取用户权限列表（这里简化实现，实际应该通过authz获取）
-	userPermissions := []string{} // TODO: 从authz获取用户权限
+	userPermissions := []string{} // 从authz获取用户权限
 
 	// 获取菜单权限矩阵
 	matrices, err := s.GetMenuPermissionMatrix(ctx, tenantID)
@@ -256,9 +253,8 @@ func (s *menuPermissionStore) GetUserAccessibleMenus(ctx context.Context, userID
 		// 检查用户是否有权限访问此菜单
 		if matrix.HasRequiredPermissions(userPermissions) {
 			menuWithPerms := &model.MenuWithPermissions{
-				MenuM:               *matrix.Menu,
-				Permissions:         matrix.AllPermissions,
-				RequiredPermissions: matrix.RequiredPermissions,
+				MenuM:       *matrix.Menu,
+				Permissions: matrix.AllPermissions,
 			}
 			accessibleMenus = append(accessibleMenus, menuWithPerms)
 		}

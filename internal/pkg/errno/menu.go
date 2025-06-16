@@ -21,6 +21,9 @@ var (
 	// ErrMenuCodeExists 表示菜单编码已存在.
 	ErrMenuCodeExists = &errorsx.ErrorX{Code: http.StatusConflict, Reason: "Conflict.MenuCodeExists", Message: "Menu code already exists."}
 
+	// ErrMenuHasChildren 表示菜单有子菜单无法删除.
+	ErrMenuHasChildren = &errorsx.ErrorX{Code: http.StatusBadRequest, Reason: "BadRequest.MenuHasChildren", Message: "Menu has children and cannot be deleted."}
+
 	// ErrMenuPermissionConfiguration 表示菜单权限配置失败.
 	ErrMenuPermissionConfiguration = &errorsx.ErrorX{Code: http.StatusInternalServerError, Reason: "InternalError.MenuPermissionConfiguration", Message: "Menu permission configuration failed."}
 

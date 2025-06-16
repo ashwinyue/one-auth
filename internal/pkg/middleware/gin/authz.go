@@ -7,6 +7,8 @@
 package gin
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/ashwinyue/one-auth/pkg/core"
@@ -31,7 +33,7 @@ type APIAuthorizer interface {
 // AuthzMiddleware 是一个 Gin 中间件，用于进行请求授权.
 func AuthzMiddleware(authorizer Authorizer) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		subject := contextx.UserID(c.Request.Context())
+		subject := strconv.FormatInt(contextx.UserID(c.Request.Context()), 10)
 		domain := contextx.TenantID(c.Request.Context()) // 获取租户ID作为domain
 		object := c.Request.URL.Path
 		action := c.Request.Method

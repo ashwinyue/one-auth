@@ -113,7 +113,7 @@ func TestLogin_Success(t *testing.T) {
 	// 创建测试用户
 	hashedPassword, _ := authn.Encrypt("password123")
 	testUser := &model.UserM{
-		UserID:   "test-user-id",
+		ID:       1, // 使用数字主键ID
 		Username: "testuser",
 		Password: hashedPassword,
 		Email:    "test@example.com",
@@ -143,9 +143,12 @@ func TestValidateLoginCredentials(t *testing.T) {
 	// 创建测试用户
 	hashedPassword, _ := authn.Encrypt("password123")
 	testUser := &model.UserM{
-		UserID:   "test-user-id",
+		ID:       1, // 使用数字主键ID
 		Username: "testuser",
 		Password: hashedPassword,
+		Email:    "test@example.com",
+		Phone:    "13800138000",
+		Nickname: "Test User",
 	}
 
 	// 测试密码验证

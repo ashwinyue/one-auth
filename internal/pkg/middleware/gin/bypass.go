@@ -7,6 +7,8 @@
 package gin
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/ashwinyue/one-auth/internal/pkg/contextx"
@@ -19,12 +21,18 @@ import (
 func AuthnBypasswMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从Header中提取用户ID，假设请求头名称为 "X-User-ID"
-		userID := "user-000001" // 默认用户ID
+		userIDStr := "1" // 默认用户ID
 		if val := c.GetHeader(known.XUserID); val != "" {
-			userID = val
+			userIDStr = val
 		}
 
-		log.Debugw("Simulated authentication successful", "userID", userID)
+		log.Debugw("Simulated authentication successful", "userID", userIDStr)
+
+		// 将字符串转换为int64
+		userID, err := strconv.ParseInt(userIDStr, 10, 64)
+		if err != nil {
+			userID = 1 // 默认用户ID
+		}
 
 		// 将用户ID和用户名注入到上下文中
 		ctx := contextx.WithUserID(c.Request.Context(), userID)

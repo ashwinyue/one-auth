@@ -15,7 +15,6 @@ import (
 
 	"github.com/ashwinyue/one-auth/pkg/authz"
 	genericoptions "github.com/ashwinyue/one-auth/pkg/options"
-	"github.com/ashwinyue/one-auth/pkg/store/where"
 	"github.com/ashwinyue/one-auth/pkg/token"
 	"github.com/redis/go-redis/v9"
 
@@ -23,13 +22,10 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ashwinyue/one-auth/internal/apiserver/biz"
-	"github.com/ashwinyue/one-auth/internal/apiserver/model"
 	"github.com/ashwinyue/one-auth/internal/apiserver/pkg/validation"
 	"github.com/ashwinyue/one-auth/internal/apiserver/store"
-	"github.com/ashwinyue/one-auth/internal/pkg/contextx"
 	"github.com/ashwinyue/one-auth/internal/pkg/known"
 	"github.com/ashwinyue/one-auth/internal/pkg/log"
-	mw "github.com/ashwinyue/one-auth/internal/pkg/middleware/gin"
 	"github.com/ashwinyue/one-auth/internal/pkg/server"
 )
 
@@ -75,21 +71,15 @@ type UnionServer struct {
 
 // ServerConfig 包含服务器的核心依赖和配置.
 type ServerConfig struct {
-	cfg       *Config
-	biz       biz.IBiz
-	val       *validation.Validator
-	retriever mw.UserRetriever
-	authz     *authz.Authz
+	cfg   *Config
+	biz   biz.IBiz
+	val   *validation.Validator
+	store store.IStore
+	authz *authz.Authz
 }
 
 // NewUnionServer 根据配置创建联合服务器.
 func (cfg *Config) NewUnionServer() (*UnionServer, error) {
-	// 注册租户解析函数，通过上下文获取用户 ID
-	//nolint: gocritic
-	where.RegisterTenant("userID", func(ctx context.Context) string {
-		return contextx.UserID(ctx)
-	})
-
 	// 初始化 token 包的签名密钥、认证 Key 及 Token 默认过期时间
 	token.Init(cfg.JWTKey, known.XUserID, cfg.Expiration)
 
@@ -197,21 +187,6 @@ func (cfg *Config) NewDB() (*gorm.DB, error) {
 func (cfg *Config) NewRedis() (*redis.Client, error) {
 	log.Infow("Initializing Redis connection", "addr", cfg.RedisOptions.Addr)
 	return cfg.RedisOptions.NewClient()
-}
-
-// UserRetriever 定义一个用户数据获取器. 用来获取用户信息.
-type UserRetriever struct {
-	store store.IStore
-}
-
-// GetUser 根据用户 ID 获取用户信息.
-func (r *UserRetriever) GetUser(ctx context.Context, userID string) (*model.UserM, error) {
-	return r.store.User().Get(ctx, where.F("user_id", userID))
-}
-
-// GetUserTenantID 根据用户ID获取租户ID
-func (r *UserRetriever) GetUserTenantID(ctx context.Context, userID string) (int64, error) {
-	return r.store.User().GetUserTenantID(ctx, userID)
 }
 
 // ProvideDB 根据配置提供一个数据库实例。

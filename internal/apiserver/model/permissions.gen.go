@@ -14,16 +14,19 @@ const TableNamePermissionM = "permissions"
 
 // PermissionM mapped from table <permissions>
 type PermissionM struct {
-	ID             int64          `gorm:"column:id;primaryKey;autoIncrement:true;comment:权限主键ID" json:"id"`                                           // 权限主键ID
-	TenantID       int64          `gorm:"column:tenant_id;not null;comment:租户ID" json:"tenant_id"`                                                    // 租户ID
-	MenuID         int64          `gorm:"column:menu_id;not null;comment:菜单ID" json:"menu_id"`                                                        // 菜单ID
-	PermissionCode string         `gorm:"column:permission_code;not null;uniqueIndex:idx_permission_code_tenant;comment:权限编码" json:"permission_code"` // 权限编码
-	Name           string         `gorm:"column:name;not null;comment:权限名称" json:"name"`                                                              // 权限名称
-	Description    *string        `gorm:"column:description;comment:描述" json:"description"`                                                           // 描述
-	Status         bool           `gorm:"column:status;not null;default:1;comment:状态：1-启用，0-禁用" json:"status"`                                        // 状态：1-启用，0-禁用
-	CreatedAt      time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`                        // 创建时间
-	UpdatedAt      time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`                        // 更新时间
-	DeletedAt      gorm.DeletedAt `gorm:"column:deleted_at;index;comment:删除时间（软删除）" json:"deleted_at"`                                                // 删除时间（软删除）
+	ID             int64          `gorm:"column:id;primaryKey;autoIncrement:true;comment:权限主键ID" json:"id"`                                                             // 权限主键ID
+	TenantID       int64          `gorm:"column:tenant_id;not null;comment:租户ID" json:"tenant_id"`                                                                      // 租户ID
+	PermissionCode string         `gorm:"column:permission_code;not null;uniqueIndex:idx_permission_code_tenant;comment:权限编码（格式：module:action）" json:"permission_code"` // 权限编码（格式：module:action）
+	Name           string         `gorm:"column:name;not null;comment:权限名称" json:"name"`                                                                                // 权限名称
+	Description    *string        `gorm:"column:description;comment:权限描述" json:"description"`                                                                           // 权限描述
+	ResourceType   string         `gorm:"column:resource_type;not null;default:menu;comment:资源类型" json:"resource_type"`                                                 // 资源类型
+	ResourcePath   *string        `gorm:"column:resource_path;comment:API路径或资源标识" json:"resource_path"`                                                                 // API路径或资源标识
+	HTTPMethod     *string        `gorm:"column:http_method;comment:HTTP方法：GET,POST,PUT,DELETE等" json:"http_method"`                                                    // HTTP方法：GET,POST,PUT,DELETE等
+	Action         *string        `gorm:"column:action;comment:操作类型：view,create,update,delete,export等" json:"action"`                                                   // 操作类型：view,create,update,delete,export等
+	Status         bool           `gorm:"column:status;not null;default:1;comment:状态：1-启用，0-禁用" json:"status"`                                                          // 状态：1-启用，0-禁用
+	CreatedAt      time.Time      `gorm:"column:created_at;not null;default:current_timestamp;comment:创建时间" json:"created_at"`                                          // 创建时间
+	UpdatedAt      time.Time      `gorm:"column:updated_at;not null;default:current_timestamp;comment:更新时间" json:"updated_at"`                                          // 更新时间
+	DeletedAt      gorm.DeletedAt `gorm:"column:deleted_at;index;comment:删除时间（软删除）" json:"deleted_at"`                                                                  // 删除时间（软删除）
 }
 
 // TableName PermissionM's table name

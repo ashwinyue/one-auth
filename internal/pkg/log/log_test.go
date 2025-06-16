@@ -71,7 +71,7 @@ func BenchmarkZapLoggerW(b *testing.B) {
 
 	// 创建一个包含上下文值的 context
 	ctx := contextx.WithRequestID(context.Background(), "request-id-12345")
-	ctx = contextx.WithUserID(ctx, "user-id-67890")
+	ctx = contextx.WithUserID(ctx, 67890)
 
 	// 重复调用 W 函数，测量性能
 	b.ResetTimer()

@@ -9,9 +9,9 @@ syntax = "proto3";
 
 package v1;
 
-import "google/protobuf/timestamp.proto";
-import "apiserver/v1/permission.proto";
 import "apiserver/v1/menu.proto";
+import "apiserver/v1/permission.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1;v1";
 

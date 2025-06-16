@@ -36,15 +36,12 @@ func InitializeWebServer(config *Config) (server.Server, error) {
 	dataCache := cache.NewCache(client)
 	bizBiz := biz.NewBiz(datastore, authzAuthz, dataCache)
 	validator := validation.New(datastore)
-	userRetriever := &UserRetriever{
-		store: datastore,
-	}
 	serverConfig := &ServerConfig{
-		cfg:       config,
-		biz:       bizBiz,
-		val:       validator,
-		retriever: userRetriever,
-		authz:     authzAuthz,
+		cfg:   config,
+		biz:   bizBiz,
+		val:   validator,
+		store: datastore,
+		authz: authzAuthz,
 	}
 	serverServer, err := NewWebServer(string2, serverConfig)
 	if err != nil {

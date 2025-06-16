@@ -386,7 +386,7 @@ func (a *Authz) AuthorizeWithDomain(sub, tenantIdentifier, obj, act string) (boo
 	}
 	err := a.tenantResolver.(*DefaultTenantResolver).db.Table("user").
 		Select("id").
-		Where("user_id = ? AND deleted_at IS NULL", sub).
+		Where("username = ? AND deleted_at IS NULL", sub).
 		First(&result).Error
 
 	userID := result.ID
@@ -416,7 +416,7 @@ func (a *Authz) AddRoleForUser(user, roleIdentifier, tenantIdentifier string) (b
 	}
 	err := a.tenantResolver.(*DefaultTenantResolver).db.Table("user").
 		Select("id").
-		Where("user_id = ? AND deleted_at IS NULL", user).
+		Where("username = ? AND deleted_at IS NULL", user).
 		First(&userResult).Error
 
 	userID := userResult.ID
@@ -764,8 +764,8 @@ func (a *Authz) checkMenuAccessForRegularUser(userID, tenantIdentifier string, m
 	return true, nil
 }
 
-// CheckAPIAccess 检查API访问权限（也支持超级管理员免检）
-func (a *Authz) CheckAPIAccess(userID, tenantIdentifier, accessPath, httpMethod string) (bool, error) {
+// CheckAPIPermission 检查API访问权限（也支持超级管理员免检）
+func (a *Authz) CheckAPIPermission(userID, tenantIdentifier, accessPath, httpMethod string) (bool, error) {
 	// 超级管理员可以访问所有API
 	if isSuperAdmin, _ := a.isSuperAdmin(userID, tenantIdentifier); isSuperAdmin {
 		return true, nil
@@ -773,6 +773,18 @@ func (a *Authz) CheckAPIAccess(userID, tenantIdentifier, accessPath, httpMethod 
 
 	// 普通用户检查API权限
 	return a.checkAPIAccessForRegularUser(userID, tenantIdentifier, accessPath, httpMethod)
+}
+
+// CheckAPIAccess 实现APIAuthorizer接口（适配中间件）
+func (a *Authz) CheckAPIAccess(subject, domain, object, action string) (bool, error) {
+	// 从domain中解析租户标识符
+	tenantIdentifier := domain
+	if domain == "default" || domain == "" {
+		tenantIdentifier = "t1" // 默认租户
+	}
+
+	// 调用原有的API权限检查方法
+	return a.CheckAPIPermission(subject, tenantIdentifier, object, action)
 }
 
 // checkAPIAccessForRegularUser 检查普通用户的API访问权限

@@ -24,3 +24,7 @@ func NewHandler(biz biz.IBiz, val *validation.Validator) *Handler {
 		val: val,
 	}
 }
+
+// 为了保持代码结构的一致性，这里声明Role相关的方法
+// 实际实现可以通过嵌入RoleHandler或直接调用来完成
+// 这些方法将在单独的role_handler.go文件中实现

@@ -161,16 +161,13 @@ func applyGeneratorOptions(g *gen.Generator) {
 
 // GenerateMiniBlogModels 为 miniblog 组件生成模型.
 func GenerateMiniBlogModels(g *gen.Generator) {
+	// 基础表
 	g.GenerateModelAs(
 		"user",
 		"UserM",
 		gen.FieldIgnore("placeholder"),
 		gen.FieldGORMTag("username", func(tag field.GormTag) field.GormTag {
 			tag.Set("uniqueIndex", "idx_user_username")
-			return tag
-		}),
-		gen.FieldGORMTag("user_id", func(tag field.GormTag) field.GormTag {
-			tag.Set("uniqueIndex", "idx_user_user_id")
 			return tag
 		}),
 		gen.FieldGORMTag("phone", func(tag field.GormTag) field.GormTag {
@@ -182,6 +179,7 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 			return tag
 		}),
 	)
+
 	g.GenerateModelAs(
 		"post",
 		"PostM",
@@ -195,12 +193,8 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 			return tag
 		}),
 	)
-	g.GenerateModelAs(
-		"casbin_rule",
-		"CasbinRuleM",
-	)
 
-	// 生成RBAC相关模型
+	// 租户管理表
 	g.GenerateModelAs(
 		"tenants",
 		"TenantM",
@@ -215,6 +209,7 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		}),
 	)
 
+	// 角色管理表
 	g.GenerateModelAs(
 		"roles",
 		"RoleM",
@@ -229,6 +224,7 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		}),
 	)
 
+	// 权限管理表（重构版）
 	g.GenerateModelAs(
 		"permissions",
 		"PermissionM",
@@ -243,6 +239,7 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		}),
 	)
 
+	// 菜单管理表（重构版-纯UI结构）
 	g.GenerateModelAs(
 		"menus",
 		"MenuM",
@@ -257,14 +254,55 @@ func GenerateMiniBlogModels(g *gen.Generator) {
 		}),
 	)
 
+	// 用户状态表（支持多认证方式）
 	g.GenerateModelAs(
-		"user_tenants",
-		"UserTenantM",
+		"user_status",
+		"UserStatusM",
 		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("auth_id", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_auth_id_type")
+			return tag
+		}),
+		gen.FieldGORMTag("auth_type", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_auth_id_type")
+			return tag
+		}),
 		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
 			tag.Set("index", "")
 			return tag
 		}),
 	)
 
+	// 关联表
+	g.GenerateModelAs(
+		"user_tenants",
+		"UserTenantM",
+		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("user_id", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_user_tenant")
+			return tag
+		}),
+		gen.FieldGORMTag("tenant_id", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_user_tenant")
+			return tag
+		}),
+		gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+			tag.Set("index", "")
+			return tag
+		}),
+	)
+
+	g.GenerateModelAs(
+		"menu_permissions",
+		"MenuPermissionM",
+		gen.FieldIgnore("placeholder"),
+		gen.FieldGORMTag("menu_id", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_menu_permission")
+			return tag
+		}),
+		gen.FieldGORMTag("permission_id", func(tag field.GormTag) field.GormTag {
+			tag.Set("uniqueIndex", "idx_menu_permission")
+			return tag
+		}),
+	)
 }

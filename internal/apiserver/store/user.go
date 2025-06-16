@@ -47,7 +47,7 @@ type UserExpansion interface {
 	// 按租户获取用户列表
 	GetUsersByTenant(ctx context.Context, tenantID int64, opts *where.Options) (int64, []*model.UserM, error)
 
-	// 获取用户的租户ID
+	// 获取用户的租户ID（用于认证中间件）
 	GetUserTenantID(ctx context.Context, userID string) (int64, error)
 }
 

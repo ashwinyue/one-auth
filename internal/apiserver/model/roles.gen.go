@@ -20,8 +20,8 @@ type RoleM struct {
 	Name        string         `gorm:"column:name;not null;comment:角色名称" json:"name"`                                            // 角色名称
 	Description *string        `gorm:"column:description;comment:描述" json:"description"`                                         // 描述
 	Status      bool           `gorm:"column:status;not null;default:1;comment:状态：1-启用，0-禁用" json:"status"`                      // 状态：1-启用，0-禁用
-	CreatedAt   time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`      // 创建时间
-	UpdatedAt   time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`      // 更新时间
+	CreatedAt   time.Time      `gorm:"column:created_at;not null;default:current_timestamp;comment:创建时间" json:"created_at"`      // 创建时间
+	UpdatedAt   time.Time      `gorm:"column:updated_at;not null;default:current_timestamp;comment:更新时间" json:"updated_at"`      // 更新时间
 	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at;index;comment:删除时间（软删除）" json:"deleted_at"`                              // 删除时间（软删除）
 }
 

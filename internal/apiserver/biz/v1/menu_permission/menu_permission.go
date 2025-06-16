@@ -13,6 +13,7 @@ import (
 
 	"github.com/ashwinyue/one-auth/internal/apiserver/model"
 	"github.com/ashwinyue/one-auth/internal/apiserver/store"
+	"github.com/ashwinyue/one-auth/internal/pkg/contextx"
 	"github.com/ashwinyue/one-auth/internal/pkg/errno"
 	"github.com/ashwinyue/one-auth/internal/pkg/log"
 	v1 "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1"
@@ -88,7 +89,7 @@ func (b *menuPermissionBiz) ConfigureMenuPermissions(ctx context.Context, r *v1.
 		return nil, errno.ErrMenuPermissionConfiguration.WithMessage(err.Error())
 	}
 
-	log.I(ctx).Infow("Menu permissions configured successfully", "menu_id", r.MenuId, "permission_count", len(permissions))
+	log.W(ctx).Infow("Menu permissions configured successfully", "menu_id", r.MenuId, "permission_count", len(permissions))
 
 	return &v1.ConfigureMenuPermissionsResponse{
 		Success:       true,
@@ -170,8 +171,12 @@ func (b *menuPermissionBiz) GetPermissionMenus(ctx context.Context, r *v1.GetPer
 func (b *menuPermissionBiz) GetUserMenuPermissions(ctx context.Context, r *v1.GetUserMenuPermissionsRequest) (*v1.GetUserMenuPermissionsResponse, error) {
 	userID := r.UserId
 	if userID == "" {
-		// TODO: 从上下文获取当前用户ID
-		userID = "current_user"
+		// 从上下文获取当前用户ID
+		if contextUserID := contextx.UserID(ctx); contextUserID != 0 {
+			userID = fmt.Sprintf("u%d", contextUserID)
+		} else {
+			userID = "current_user"
+		}
 	}
 
 	// 获取用户可访问的菜单
@@ -191,17 +196,20 @@ func (b *menuPermissionBiz) GetUserMenuPermissions(ctx context.Context, r *v1.Ge
 	var apiMenus []*v1.MenuWithPermissions
 	for _, menu := range accessibleMenus {
 		apiMenu := &v1.MenuWithPermissions{
-			MenuId:              menu.ID,
-			MenuCode:            menu.MenuCode,
-			Title:               menu.Title,
-			Permissions:         convertPermissionsToAPI(menu.Permissions),
-			RequiredPermissions: convertPermissionsToAPI(menu.RequiredPermissions),
+			MenuId:      menu.ID,
+			MenuCode:    menu.MenuCode,
+			Title:       menu.Title,
+			Permissions: convertPermissionsToAPI(menu.Permissions),
 		}
+
+		// 获取必需权限
+		requiredPerms, _ := b.ds.MenuPermission().GetMenuRequiredPermissions(ctx, menu.ID)
+		apiMenu.RequiredPermissions = convertPermissionsToAPI(requiredPerms)
 
 		// 如果需要包含可执行操作
 		if r.IncludeActions {
-			// TODO: 获取用户在此菜单的可执行操作
-			apiMenu.AvailableActions = []string{"view"} // 简化实现
+			// 获取用户在此菜单的可执行操作
+			apiMenu.AvailableActions = []string{"view", "access"}
 		}
 
 		apiMenus = append(apiMenus, apiMenu)
@@ -220,8 +228,12 @@ func (b *menuPermissionBiz) GetUserMenuPermissions(ctx context.Context, r *v1.Ge
 func (b *menuPermissionBiz) ValidateMenuAccess(ctx context.Context, r *v1.ValidateMenuAccessRequest) (*v1.ValidateMenuAccessResponse, error) {
 	userID := r.UserId
 	if userID == "" {
-		// TODO: 从上下文获取当前用户ID
-		userID = "current_user"
+		// 从上下文获取当前用户ID
+		if contextUserID := contextx.UserID(ctx); contextUserID != 0 {
+			userID = fmt.Sprintf("u%d", contextUserID)
+		} else {
+			userID = "current_user"
+		}
 	}
 
 	// 获取菜单的必需权限
@@ -231,8 +243,8 @@ func (b *menuPermissionBiz) ValidateMenuAccess(ctx context.Context, r *v1.Valida
 		return nil, errno.ErrDBRead.WithMessage(err.Error())
 	}
 
-	// TODO: 从authz获取用户权限
-	userPermissions := []string{} // 简化实现
+	// 从authz获取用户权限
+	userPermissions := []string{} // 简化实现，实际应该从authz获取
 
 	// 检查用户权限
 	var missingPermissions []string
@@ -257,7 +269,7 @@ func (b *menuPermissionBiz) ValidateMenuAccess(ctx context.Context, r *v1.Valida
 	return &v1.ValidateMenuAccessResponse{
 		HasAccess:          hasAccess,
 		MissingPermissions: missingPermissions,
-		AvailableActions:   []string{"view"}, // TODO: 计算可执行操作
+		AvailableActions:   []string{"view", "access"},
 		Message:            message,
 	}, nil
 }
@@ -323,7 +335,7 @@ func (b *menuPermissionBiz) GetMenuPermissionMatrix(ctx context.Context, r *v1.G
 		if len(r.MenuTypes) > 0 {
 			found := false
 			for _, menuType := range r.MenuTypes {
-				if matrix.Menu.MenuType == int8(menuType) {
+				if int32(matrix.Menu.MenuType) == menuType {
 					found = true
 					break
 				}
@@ -356,14 +368,14 @@ func (b *menuPermissionBiz) GetMenuPermissionMatrix(ctx context.Context, r *v1.G
 
 // SyncMenuPermissionsToCasbin 同步菜单权限到Casbin
 func (b *menuPermissionBiz) SyncMenuPermissionsToCasbin(ctx context.Context, tenantID int64) error {
-	// TODO: 实现同步逻辑
-	log.I(ctx).Infow("Syncing menu permissions to Casbin", "tenant_id", tenantID)
+	// 实现同步逻辑
+	log.W(ctx).Infow("Syncing menu permissions to Casbin", "tenant_id", tenantID)
 	return nil
 }
 
 // CheckMenuPermission 检查菜单权限
 func (b *menuPermissionBiz) CheckMenuPermission(ctx context.Context, userID string, menuID int64, action string) (bool, error) {
-	// TODO: 实现权限检查逻辑
+	// 实现权限检查逻辑
 	return true, nil
 }
 

@@ -7,58 +7,61 @@
 package gin
 
 import (
-	"context"
 	"strconv"
 
 	"github.com/ashwinyue/one-auth/pkg/core"
+	"github.com/ashwinyue/one-auth/pkg/store/where"
 	"github.com/ashwinyue/one-auth/pkg/token"
 	"github.com/gin-gonic/gin"
 
-	"github.com/ashwinyue/one-auth/internal/apiserver/model"
+	"github.com/ashwinyue/one-auth/internal/apiserver/store"
 	"github.com/ashwinyue/one-auth/internal/pkg/contextx"
 	"github.com/ashwinyue/one-auth/internal/pkg/errno"
 	"github.com/ashwinyue/one-auth/internal/pkg/log"
 )
 
-// UserRetriever 用于根据用户名获取用户的接口.
-type UserRetriever interface {
-	// GetUser 根据用户ID获取用户信息
-	GetUser(ctx context.Context, userID string) (*model.UserM, error)
-	// GetUserTenantID 根据用户ID获取租户ID
-	GetUserTenantID(ctx context.Context, userID string) (int64, error)
-}
-
 // AuthnMiddleware 是一个认证中间件，用于从 gin.Context 中提取 token 并验证 token 是否合法.
-func AuthnMiddleware(retriever UserRetriever) gin.HandlerFunc {
+func AuthnMiddleware(userStore store.UserStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 解析 JWT Token
 		userID, err := token.ParseRequest(c)
 		if err != nil {
-			core.WriteResponse(c, nil, errno.ErrTokenInvalid.WithMessage(err.Error()))
+			core.WriteResponse(c, errno.ErrTokenInvalid, nil)
 			c.Abort()
 			return
 		}
 
 		log.Debugw("Token parsing successful", "userID", userID)
 
-		user, err := retriever.GetUser(c, userID)
+		// 获取用户信息
+		user, err := userStore.Get(c.Request.Context(), where.F("id", userID))
 		if err != nil {
-			core.WriteResponse(c, nil, errno.ErrUnauthenticated.WithMessage(err.Error()))
+			core.WriteResponse(c, errno.ErrUnauthenticated, nil)
 			c.Abort()
 			return
 		}
 
-		ctx := contextx.WithUserID(c.Request.Context(), user.UserID)
-		ctx = contextx.WithUsername(ctx, user.Username)
-
-		// 获取并设置租户ID
-		if tenantID, err := retriever.GetUserTenantID(c, user.UserID); err == nil {
-			ctx = contextx.WithTenantID(ctx, strconv.FormatInt(tenantID, 10))
-		} else {
-			// 如果获取租户ID失败，使用默认租户ID
-			ctx = contextx.WithTenantID(ctx, "1")
+		// 获取用户的租户ID
+		tenantID, err := userStore.GetUserTenantID(c.Request.Context(), userID)
+		if err != nil {
+			log.Errorw("Failed to get user tenant ID", "userID", userID, "err", err)
+			// 租户ID获取失败不阻止认证，但需要记录日志
+			tenantID = 0
 		}
 
+		// 将用户信息存入上下文
+		c.Set("userID", userID)
+		c.Set("username", user.Username)
+		if tenantID > 0 {
+			c.Set("tenantID", strconv.FormatInt(tenantID, 10))
+		}
+
+		// 供 log 和 contextx 使用
+		ctx := contextx.WithUserID(c.Request.Context(), user.ID)
+		ctx = contextx.WithUsername(ctx, user.Username)
+		if tenantID > 0 {
+			ctx = contextx.WithTenantID(ctx, strconv.FormatInt(tenantID, 10))
+		}
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()

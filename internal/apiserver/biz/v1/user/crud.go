@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -51,10 +50,10 @@ func (b *userBiz) Create(ctx context.Context, rq *apiv1.CreateUserRequest) (*api
 		// 创建用户名认证方式（主要认证方式）
 		userStatusUsername := &model.UserStatusM{
 			AuthID:     userM.Username,
-			AuthType:   model.AuthTypeUsername,
+			AuthType:   int32(model.AuthTypeUsername),
 			UserID:     userM.ID, // 使用数字主键ID
 			TenantID:   tenantID,
-			Status:     model.UserStatusActive,
+			Status:     int32(model.UserStatusActive),
 			IsPrimary:  true,
 			IsVerified: true,
 		}
@@ -66,10 +65,10 @@ func (b *userBiz) Create(ctx context.Context, rq *apiv1.CreateUserRequest) (*api
 		if userM.Email != "" {
 			userStatusEmail := &model.UserStatusM{
 				AuthID:     userM.Email,
-				AuthType:   model.AuthTypeEmail,
+				AuthType:   int32(model.AuthTypeEmail),
 				UserID:     userM.ID, // 使用数字主键ID
 				TenantID:   tenantID,
-				Status:     model.UserStatusActive,
+				Status:     int32(model.UserStatusActive),
 				IsPrimary:  false,
 				IsVerified: false, // 邮箱需要验证
 			}
@@ -82,10 +81,10 @@ func (b *userBiz) Create(ctx context.Context, rq *apiv1.CreateUserRequest) (*api
 		if userM.Phone != "" {
 			userStatusPhone := &model.UserStatusM{
 				AuthID:     userM.Phone,
-				AuthType:   model.AuthTypePhone,
+				AuthType:   int32(model.AuthTypePhone),
 				UserID:     userM.ID, // 使用数字主键ID
 				TenantID:   tenantID,
-				Status:     model.UserStatusActive,
+				Status:     int32(model.UserStatusActive),
 				IsPrimary:  false,
 				IsVerified: false, // 手机号需要验证
 			}
@@ -174,22 +173,7 @@ func (b *userBiz) Get(ctx context.Context, rq *apiv1.GetUserRequest) (*apiv1.Get
 		return nil, err
 	}
 
-	// 获取用户状态信息
-	userAuthMethods, err := model.GetUserAuthMethods(b.store.DB(ctx), userM.ID)
-	if err != nil {
-		log.W(ctx).Errorw("Failed to get user auth methods", "user_id", userM.ID, "err", err)
-		// 用户状态信息获取失败不影响基本用户信息返回
-	}
-
-	// 获取主要认证方式的状态
-	primaryAuth := model.GetPrimaryAuthForUser(userAuthMethods)
-
 	user := conversion.UserModelToUserV1(userM)
-
-	// 如果有状态信息，可以添加到响应中（需要扩展proto定义）
-	if primaryAuth != nil {
-		log.W(ctx).Infow("User status info", "user_id", userM.ID, "status", primaryAuth.GetStatusString(), "last_login", primaryAuth.LastLoginTime)
-	}
 
 	return &apiv1.GetUserResponse{User: user}, nil
 }
@@ -237,31 +221,6 @@ func (b *userBiz) ListWithBadPerformance(ctx context.Context, rq *apiv1.ListUser
 	log.W(ctx).Infow("Get users from backend storage (bad performance)", "count", len(users))
 
 	return &apiv1.ListUserResponse{TotalCount: count, Users: users}, nil
-}
-
-// getClientIP 获取客户端IP地址
-func getClientIP(ctx context.Context) string {
-	if ginCtx, ok := ctx.(*gin.Context); ok {
-		// 优先从 X-Forwarded-For 头获取真实IP
-		if ip := ginCtx.GetHeader("X-Forwarded-For"); ip != "" {
-			return ip
-		}
-		// 其次从 X-Real-IP 头获取
-		if ip := ginCtx.GetHeader("X-Real-IP"); ip != "" {
-			return ip
-		}
-		// 最后使用 RemoteAddr
-		return ginCtx.ClientIP()
-	}
-	return "unknown"
-}
-
-// getUserAgent 获取用户代理字符串
-func getUserAgent(ctx context.Context) string {
-	if ginCtx, ok := ctx.(*gin.Context); ok {
-		return ginCtx.GetHeader("User-Agent")
-	}
-	return "unknown"
 }
 
 // ValidateUserRequest 展示biz层简单参数校验的示例方法

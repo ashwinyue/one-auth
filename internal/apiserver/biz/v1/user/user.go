@@ -16,6 +16,7 @@ import (
 	"github.com/ashwinyue/one-auth/internal/apiserver/store"
 	apiv1 "github.com/ashwinyue/one-auth/pkg/api/apiserver/v1"
 	"github.com/ashwinyue/one-auth/pkg/authz"
+	"github.com/ashwinyue/one-auth/pkg/client/sms"
 )
 
 // UserBiz 定义了 user 模块在 biz 层所实现的方法.
@@ -36,6 +37,9 @@ type UserExpansion interface {
 	ListWithBadPerformance(ctx context.Context, rq *apiv1.ListUserRequest) (*apiv1.ListUserResponse, error)
 	SendVerifyCode(ctx context.Context, rq *apiv1.SendVerifyCodeRequest) (*apiv1.SendVerifyCodeResponse, error)
 	Logout(ctx context.Context, rq *apiv1.LogoutRequest) (*apiv1.LogoutResponse, error)
+	Register(ctx context.Context, rq *apiv1.RegisterRequest) (*apiv1.RegisterResponse, error)
+	BindPhone(ctx context.Context, rq *apiv1.BindPhoneRequest) (*apiv1.BindPhoneResponse, error)
+	CheckPhoneAvailable(ctx context.Context, rq *apiv1.CheckPhoneAvailableRequest) (*apiv1.CheckPhoneAvailableResponse, error)
 }
 
 // userBiz 是 UserBiz 接口的实现.
@@ -44,18 +48,20 @@ type userBiz struct {
 	authz          *authz.Authz
 	loginSecurity  *cache.LoginSecurityManager
 	sessionManager *cache.SessionManager
+	smsClient      sms.Client
 }
 
 // 确保 userBiz 实现了 UserBiz 接口.
 var _ UserBiz = (*userBiz)(nil)
 
 // New 创建一个 UserBiz 实例.
-func New(store store.IStore, authz *authz.Authz, sessionManager *cache.SessionManager, loginSecurity *cache.LoginSecurityManager) *userBiz {
+func New(store store.IStore, authz *authz.Authz, sessionManager *cache.SessionManager, loginSecurity *cache.LoginSecurityManager, smsClient sms.Client) *userBiz {
 	return &userBiz{
 		store:          store,
 		authz:          authz,
 		loginSecurity:  loginSecurity,
 		sessionManager: sessionManager,
+		smsClient:      smsClient,
 	}
 }
 
@@ -72,3 +78,4 @@ type SessionInfo struct {
 
 // 认证相关方法已移至 auth.go 文件
 // CRUD相关方法已移至 crud.go 文件
+// 注册相关方法已移至 register.go 文件
